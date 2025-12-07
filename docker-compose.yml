@@ -1,0 +1,128 @@
+# CryptoHunter - Full Production Stack
+# Complete deployment with all services
+
+services:
+  # ==============================================================
+  # Main API Server
+  # ==============================================================
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./results:/app/results
+      - ./models:/app/models
+    environment:
+      - GHIDRA_PATH=/opt/ghidra
+      - DATABASE_URL=postgresql://crypto:crypto123@postgres:5432/cryptohunter
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==============================================================
+  # Celery Worker for Background Analysis Tasks
+  # ==============================================================
+  worker:
+    build: .
+    volumes:
+      - ./uploads:/app/uploads
+      - ./results:/app/results
+      - ./models:/app/models
+    environment:
+      - GHIDRA_PATH=/opt/ghidra
+      - DATABASE_URL=postgresql://crypto:crypto123@postgres:5432/cryptohunter
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    restart: unless-stopped
+    command: celery -A src.workers.celery_app worker --loglevel=info --concurrency=4
+
+  # ==============================================================
+  # PostgreSQL Database
+  # ==============================================================
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: crypto
+      POSTGRES_PASSWORD: crypto123
+      POSTGRES_DB: cryptohunter
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U crypto -d cryptohunter" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==============================================================
+  # Redis - Result Backend & Caching
+  # ==============================================================
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # ==============================================================
+  # RabbitMQ - Message Broker for Celery
+  # ==============================================================
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672" # AMQP
+      - "15672:15672" # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "check_running" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==============================================================
+  # Flower - Celery Monitoring (Optional)
+  # ==============================================================
+  flower:
+    build: .
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+    depends_on:
+      - rabbitmq
+      - worker
+    restart: unless-stopped
+    command: celery -A src.workers.celery_app flower --port=5555
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:

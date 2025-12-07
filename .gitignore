@@ -1,0 +1,43 @@
+# CryptoHunter .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.env
+*.egg-info/
+dist/
+build/
+*.egg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Project specific
+uploads/*
+!uploads/.gitkeep
+results/*
+!results/.gitkeep
+ghidra_projects/
+/tmp/
+*.log
+
+# Models (large files - use Git LFS or download separately)
+# models/*.pt
+# models/*.pth
+
+# Docker
+.docker/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
