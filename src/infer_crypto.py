@@ -155,13 +155,13 @@ class CryptoInference:
                 self.model = SOTA_GIN()
                 self.model.load_state_dict(torch.load(self.model_path, map_location=self.device))
                 self.model.eval()
-                print(f"✓ Model loaded: {self.model_path}")
+                print(f" Model loaded: {self.model_path}")
             else:
-                print(f"⚠ Model not found: {self.model_path}")
+                print(f" Model not found: {self.model_path}")
                 print("  Using heuristic classification")
                 
         except ImportError as e:
-            print(f"⚠ PyTorch dependencies missing: {e}")
+            print(f" PyTorch dependencies missing: {e}")
             print("  Using heuristic classification")
     
     def infer(self, functions):
@@ -320,7 +320,7 @@ def main():
     if args.binary:
         arch_info = detect_architecture(args.binary)
         if arch_info.get('arch') not in ['unknown', 'possibly_AVR', 'possibly_Z80']:
-            print(f"\n✓ Architecture: {arch_info['arch']} ({arch_info['bits']}-bit, {arch_info['endian']}-endian)")
+            print(f"\n Architecture: {arch_info['arch']} ({arch_info['bits']}-bit, {arch_info['endian']}-endian)")
             print(f"  Confidence: {arch_info['confidence']*100:.1f}%")
         elif arch_info.get('confidence', 0) > 0:
             print(f"\n? Possible architecture: {arch_info['arch']} (confidence: {arch_info['confidence']*100:.1f}%)")

@@ -122,16 +122,16 @@ async def root():
         </style>
     </head>
     <body>
-        <h1>🔐 CryptoHunter</h1>
+        <h1> CryptoHunter</h1>
         <p class="subtitle">AI-Powered Cryptographic Primitive Detection in Firmware</p>
         
         <div class="upload-box" id="dropzone">
-            <h3>📁 Upload Firmware</h3>
+            <h3> Upload Firmware</h3>
             <p>Drag & drop a firmware file here, or click to select</p>
             <form id="uploadForm" enctype="multipart/form-data">
                 <input type="file" name="file" id="fileInput" accept=".bin,.elf,.o,.so,.exe,.img,.fw">
                 <br><br>
-                <button type="submit" class="btn" id="submitBtn">🔍 Analyze Firmware</button>
+                <button type="submit" class="btn" id="submitBtn"> Analyze Firmware</button>
             </form>
             <p id="status"></p>
         </div>
@@ -165,10 +165,10 @@ async def root():
                 try {
                     const res = await fetch('/api/analyze', { method: 'POST', body: formData });
                     const data = await res.json();
-                    document.getElementById('status').innerText = '✅ Analysis Complete!';
+                    document.getElementById('status').innerText = ' Analysis Complete!';
                     displayResults(data);
                 } catch (err) {
-                    document.getElementById('status').innerText = '❌ Error: ' + err.message;
+                    document.getElementById('status').innerText = ' Error: ' + err.message;
                 }
                 document.getElementById('submitBtn').disabled = false;
             };
@@ -182,14 +182,14 @@ async def root():
                 let html = '<div class="results-container">';
                 
                 // Summary
-                html += '<div class="section"><h3>📊 Summary</h3><div class="summary-grid">';
+                html += '<div class="section"><h3> Summary</h3><div class="summary-grid">';
                 html += '<div class="summary-card"><div class="summary-value">' + cryptoCount + '</div><div class="summary-label">Crypto Primitives</div></div>';
                 html += '<div class="summary-card"><div class="summary-value">' + protocols.length + '</div><div class="summary-label">Protocols</div></div>';
                 html += '<div class="summary-card"><div class="summary-value">' + arch + '</div><div class="summary-label">Architecture</div></div>';
                 html += '</div></div>';
                 
                 // Classifications
-                html += '<div class="section"><h3>🔐 Detected Crypto Primitives</h3>';
+                html += '<div class="section"><h3> Detected Crypto Primitives</h3>';
                 if (classifications.length > 0) {
                     classifications.forEach(c => {
                         const confClass = c.confidence >= 0.85 ? '' : c.confidence >= 0.70 ? 'medium' : 'low';
@@ -205,7 +205,7 @@ async def root():
                 
                 // Protocols
                 if (protocols.length > 0) {
-                    html += '<div class="section"><h3>🔗 Detected Protocols</h3>';
+                    html += '<div class="section"><h3> Detected Protocols</h3>';
                     protocols.forEach(p => {
                         html += '<div class="protocol-item">';
                         html += '<div class="protocol-name">' + p.name + '</div>';
@@ -216,7 +216,7 @@ async def root():
                 }
                 
                 // Raw JSON
-                html += '<div class="section"><h3>📋 Raw JSON</h3><pre>' + JSON.stringify(data, null, 2) + '</pre></div>';
+                html += '<div class="section"><h3> Raw JSON</h3><pre>' + JSON.stringify(data, null, 2) + '</pre></div>';
                 
                 html += '</div>';
                 document.getElementById('results').innerHTML = html;
@@ -300,7 +300,7 @@ async def run_real_analysis(job_id, file_path, filename, size, file_hash):
             output_dir.mkdir(exist_ok=True)
             
             # Run full Ghidra + GNN analysis
-            print(f"🔍 Running full Ghidra analysis for {filename}...")
+            print(f" Running full Ghidra analysis for {filename}...")
             
             # Output path for the JSON report
             output_json = str(output_dir / f"{job_id}_report.json")
@@ -356,7 +356,7 @@ async def run_real_analysis(job_id, file_path, filename, size, file_hash):
                 
         except Exception as e:
             import traceback
-            print(f"⚠ Ghidra analysis failed: {e}")
+            print(f" Ghidra analysis failed: {e}")
             traceback.print_exc()
             results["ghidra_analysis"] = {"error": str(e)}
             # Fall back to heuristic analysis
@@ -1322,20 +1322,20 @@ async def export_pdf_endpoint(job_id: str):
     </style>
 </head>
 <body>
-    <h1>🔐 CryptoHunter Analysis Report</h1>
+    <h1> CryptoHunter Analysis Report</h1>
     <p><strong>Job ID:</strong> {job_id}</p>
     <p><strong>Filename:</strong> {data.get('filename', 'N/A')}</p>
     <p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
     
     <div class="summary-box">
-        <h2>📊 Summary</h2>
-        <p><strong>Crypto Detected:</strong> <span class="{'crypto' if summary.get('crypto_detected') else 'non-crypto'}">{'Yes ✓' if summary.get('crypto_detected') else 'No'}</span></p>
+        <h2> Summary</h2>
+        <p><strong>Crypto Detected:</strong> <span class="{'crypto' if summary.get('crypto_detected') else 'non-crypto'}">{'Yes ' if summary.get('crypto_detected') else 'No'}</span></p>
         <p><strong>Total Crypto Primitives:</strong> {summary.get('crypto_count', 0)}</p>
         <p><strong>Architecture:</strong> {summary.get('architecture', 'Unknown')}</p>
         <p><strong>Security Level:</strong> {summary.get('security_level', 'Unknown').upper()}</p>
     </div>
     
-    <h2>🔐 Detected Crypto Primitives</h2>
+    <h2> Detected Crypto Primitives</h2>
     <table>
         <tr><th>Name</th><th>Class</th><th>Confidence</th><th>Indicator</th></tr>
 """
@@ -1346,7 +1346,7 @@ async def export_pdf_endpoint(job_id: str):
     html += "</table>"
     
     if protocols:
-        html += "<h2>🔗 Detected Protocols</h2><ul>"
+        html += "<h2> Detected Protocols</h2><ul>"
         for p in protocols:
             html += f"<li><strong>{p.get('name', '')}</strong>: {p.get('description', '')} ({p.get('confidence', 0)*100:.0f}%)</li>"
         html += "</ul>"

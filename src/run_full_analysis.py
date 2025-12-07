@@ -135,14 +135,14 @@ def extract_firmware_with_binwalk(firmware_path, output_dir):
         binaries = _try_python_extraction(firmware_path, output_dir)
     
     if binaries:
-        print(f"  ✓ Extracted {len(binaries)} binaries from firmware")
+        print(f"   Extracted {len(binaries)} binaries from firmware")
         for b in binaries[:5]:
             print(f"    • {os.path.basename(b)}")
         if len(binaries) > 5:
             print(f"    ... and {len(binaries) - 5} more")
         return binaries
     
-    print("  ⚠ No binaries extracted, using original file")
+    print("   No binaries extracted, using original file")
     return [firmware_path]
 
 
@@ -357,17 +357,17 @@ def extract_graph_with_ghidra(binary_path, output_dir):
         if os.path.exists(json_path):
             with open(json_path, 'r') as f:
                 functions = json.load(f)
-            print(f"  ✓ Extracted {len(functions)} functions")
+            print(f"   Extracted {len(functions)} functions")
             return functions
         else:
-            print(f"  ✗ No graph output generated")
+            print(f"   No graph output generated")
             return []
             
     except subprocess.TimeoutExpired:
-        print("  ✗ Ghidra analysis timed out")
+        print("   Ghidra analysis timed out")
         return []
     except Exception as e:
-        print(f"  ✗ Ghidra error: {e}")
+        print(f"   Ghidra error: {e}")
         return []
 
 
@@ -444,7 +444,7 @@ def fast_filter_functions(functions):
     
     suspicious.sort(key=lambda x: x["suspicion_score"], reverse=True)
     
-    print(f"  ✓ Filtered to {len(suspicious)} suspicious functions")
+    print(f"   Filtered to {len(suspicious)} suspicious functions")
     print(f"  → Reduced by {100*(1 - len(suspicious)/max(1,len(functions))):.1f}%")
     
     return suspicious
@@ -507,13 +507,13 @@ def classify_with_gnn(functions):
         
         # Load model
         if not os.path.exists(MODEL_PATH):
-            print(f"  ⚠ Model not found at {MODEL_PATH}, using heuristics")
+            print(f"   Model not found at {MODEL_PATH}, using heuristics")
             return heuristic_classify(functions)
         
         model = SOTA_GIN()
         model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
         model.eval()
-        print(f"  ✓ Loaded model: {MODEL_PATH}")
+        print(f"   Loaded model: {MODEL_PATH}")
         
         # Opcode mapping
         opcode_map = {
@@ -589,13 +589,13 @@ def classify_with_gnn(functions):
         
         # Summary
         crypto_count = sum(1 for f in classified if f["class_id"] > 0)
-        print(f"  ✓ Classified {len(classified)} functions")
+        print(f"   Classified {len(classified)} functions")
         print(f"  → Crypto detected: {crypto_count} functions")
         
         return classified
         
     except ImportError as e:
-        print(f"  ⚠ PyTorch not available: {e}")
+        print(f"   PyTorch not available: {e}")
         print("  → Falling back to heuristic classification")
         return heuristic_classify(functions)
 
@@ -745,7 +745,7 @@ def detect_protocols(classifications):
     
     detected_protocols.sort(key=lambda x: -x["confidence"])
     
-    print(f"  ✓ Detected {len(detected_protocols)} protocols")
+    print(f"   Detected {len(detected_protocols)} protocols")
     for proto in detected_protocols:
         print(f"    • {proto['name']} ({proto['confidence']*100:.0f}%)")
     
@@ -772,7 +772,7 @@ def symbolic_verify(classifications, binary_path):
     
     try:
         import angr
-        print("  ✓ Angr available, performing symbolic analysis...")
+        print("   Angr available, performing symbolic analysis...")
         
         verified_results = []
         
@@ -805,13 +805,13 @@ def symbolic_verify(classifications, binary_path):
                 verified_results.append(result)
             
         except Exception as e:
-            print(f"  ⚠ Angr analysis error: {e}")
+            print(f"   Angr analysis error: {e}")
             
-        print(f"  ✓ Verified {len(verified_results)} functions")
+        print(f"   Verified {len(verified_results)} functions")
         return verified_results
         
     except ImportError:
-        print("  ⚠ Angr not installed, using heuristic verification")
+        print("   Angr not installed, using heuristic verification")
         
         # Heuristic verification
         verified_results = []
@@ -886,7 +886,7 @@ def aggregate_results(binary_path, classifications, protocols, verifications):
         "class_summary": class_summary
     }
     
-    print(f"  ✓ Report generated")
+    print(f"   Report generated")
     print(f"  → Total functions: {total_functions}")
     print(f"  → Crypto functions: {len(crypto_functions)}")
     print(f"  → Protocols detected: {len(protocols)}")
@@ -917,7 +917,7 @@ def analyze(binary_path, output_path=None, is_firmware=False):
     print(f"  Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
     if not os.path.exists(binary_path):
-        print(f"\n✗ Error: File not found: {binary_path}")
+        print(f"\n Error: File not found: {binary_path}")
         return None
     
     # Step 0: Firmware extraction (if needed)
@@ -939,7 +939,7 @@ def analyze(binary_path, output_path=None, is_firmware=False):
         functions = extract_graph_with_ghidra(binary, temp_dir)
         
         if not functions:
-            print(f"    ⚠ No functions extracted from {os.path.basename(binary)}")
+            print(f"     No functions extracted from {os.path.basename(binary)}")
             continue
     
         # Step 2: Fast filter
@@ -959,7 +959,7 @@ def analyze(binary_path, output_path=None, is_firmware=False):
         all_results.append(result)
     
     if not all_results:
-        print("\n✗ No functions extracted from any binary. Analysis aborted.")
+        print("\n No functions extracted from any binary. Analysis aborted.")
         return None
     
     # Merge results if multiple binaries
@@ -979,7 +979,7 @@ def analyze(binary_path, output_path=None, is_firmware=False):
     if output_path:
         with open(output_path, 'w') as f:
             json.dump(final_result, f, indent=2)
-        print(f"\n✓ Report saved to: {output_path}")
+        print(f"\n Report saved to: {output_path}")
     
     # Print final summary
     print("\n" + "="*60)

@@ -24,7 +24,7 @@ try:
     XGBOOST_AVAILABLE = True
 except ImportError:
     XGBOOST_AVAILABLE = False
-    print("⚠ XGBoost not available, using heuristic filter")
+    print(" XGBoost not available, using heuristic filter")
 
 
 # Known crypto constants for detection
@@ -135,9 +135,9 @@ class XGBoostFilter:
             try:
                 self.model = xgb.Booster()
                 self.model.load_model(model_path)
-                print(f"✓ Loaded XGBoost filter model from {model_path}")
+                print(f" Loaded XGBoost filter model from {model_path}")
             except Exception as e:
-                print(f"⚠ Could not load XGBoost model: {e}")
+                print(f" Could not load XGBoost model: {e}")
     
     def predict(self, functions: List[Dict]) -> List[Tuple[Dict, float]]:
         """
@@ -251,7 +251,7 @@ def train_filter_model(training_data: List[Tuple[Dict, int]],
         True if successful
     """
     if not XGBOOST_AVAILABLE:
-        print("❌ XGBoost not available for training")
+        print(" XGBoost not available for training")
         return False
     
     # Extract features and labels
@@ -282,7 +282,7 @@ def train_filter_model(training_data: List[Tuple[Dict, int]],
     
     # Save
     model.save_model(output_path)
-    print(f"✓ Saved XGBoost filter model to {output_path}")
+    print(f" Saved XGBoost filter model to {output_path}")
     
     return True
 

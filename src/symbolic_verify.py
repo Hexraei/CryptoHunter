@@ -19,7 +19,7 @@ try:
     ANGR_AVAILABLE = True
 except ImportError:
     ANGR_AVAILABLE = False
-    print("⚠ Angr not available, symbolic verification disabled")
+    print(" Angr not available, symbolic verification disabled")
 
 
 class ProtocolType(Enum):
@@ -81,9 +81,9 @@ class SymbolicVerifier:
                     auto_load_libs=False,
                     load_options={'auto_load_libs': False}
                 )
-                print(f"✓ Loaded binary for symbolic analysis: {binary_path}")
+                print(f" Loaded binary for symbolic analysis: {binary_path}")
             except Exception as e:
-                print(f"⚠ Could not load binary with Angr: {e}")
+                print(f" Could not load binary with Angr: {e}")
     
     def verify_function(self, function: Dict) -> VerificationResult:
         """
