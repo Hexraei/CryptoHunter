@@ -315,11 +315,14 @@ def _find_binaries_in_dir(directory):
 # =============================================================================
 
 
-def extract_graph_with_ghidra(binary_path, output_dir):
+def extract_graph_with_ghidra(binary_path, output_dir, architecture=None):
     """
     Extract control flow graph using Ghidra headless analyzer.
     
-    Input: Binary file path
+    Input: 
+        binary_path: Path to binary file
+        output_dir: Directory for output
+        architecture: Detected architecture (e.g., "ARM64", "ARM32", "MIPS-BE")
     Output: JSON file with function graphs
     """
     print(f"\n{'='*60}")
@@ -331,6 +334,46 @@ def extract_graph_with_ghidra(binary_path, output_dir):
     project_dir = os.path.join(output_dir, "ghidra_proj")
     os.makedirs(project_dir, exist_ok=True)
     
+    # Map our architecture names to Ghidra processor names
+    GHIDRA_PROCESSOR_MAP = {
+        # ARM variants
+        "ARM32": "ARM:LE:32:v7",
+        "ARM-Thumb": "ARM:LE:32:v7",
+        "ARM32/BE": "ARM:BE:32:v7",
+        "ARM64": "AARCH64:LE:64:v8A",
+        "ARM64/64-bit": "AARCH64:LE:64:v8A",
+        "ARM/Cortex-M": "ARM:LE:32:Cortex",
+        
+        # x86 variants
+        "x86": "x86:LE:32:default",
+        "x86-64": "x86:LE:64:default",
+        "x86-64/64-bit": "x86:LE:64:default",
+        
+        # MIPS variants
+        "MIPS-BE": "MIPS:BE:32:default",
+        "MIPS-BE/BE": "MIPS:BE:32:default",
+        "MIPS-LE": "MIPS:LE:32:default",
+        "MIPS64": "MIPS:BE:64:default",
+        
+        # Other
+        "RISCV32": "RISCV:LE:32:RV32IC",
+        "RISC-V": "RISCV:LE:32:RV32IC",
+        "RISC-V/ESP32-C3": "RISCV:LE:32:RV32IC",
+        "RISC-V/ESP32-C6": "RISCV:LE:32:RV32IC",
+        "PowerPC": "PowerPC:BE:32:default",
+        "Xtensa": "Xtensa:LE:32:default",
+        "Xtensa/ESP32": "Xtensa:LE:32:default",
+        "Xtensa/ESP32-LX6": "Xtensa:LE:32:default",
+        "Xtensa/ESP32-S2-LX7": "Xtensa:LE:32:default",
+        "Xtensa/ESP32-S3-LX7": "Xtensa:LE:32:default",
+        
+        # Heuristic-detected architectures
+        "AVR": "avr8:LE:16:atmega256",
+        "AVR/Intel-HEX": "avr8:LE:16:atmega256",
+        "Z80": "z80:LE:16:default",
+        "Z80/S-Record": "z80:LE:16:default",
+    }
+    
     cmd = [
         HEADLESS,
         project_dir, "temp_proj",
@@ -339,6 +382,20 @@ def extract_graph_with_ghidra(binary_path, output_dir):
         "-deleteProject",
         "-scriptPath", BASE_DIR
     ]
+    
+    # Add processor specification if we detected the architecture
+    if architecture:
+        # Clean up architecture string
+        arch_clean = architecture.split('/')[0] if '/' in architecture else architecture
+        ghidra_proc = GHIDRA_PROCESSOR_MAP.get(architecture) or GHIDRA_PROCESSOR_MAP.get(arch_clean)
+        
+        if ghidra_proc:
+            cmd.extend(["-processor", ghidra_proc])
+            print(f"  Architecture: {architecture} -> Ghidra: {ghidra_proc}")
+        else:
+            print(f"  Architecture: {architecture} (letting Ghidra auto-detect)")
+    else:
+        print(f"  Architecture: Auto-detect (no hint provided)")
     
     try:
         result = subprocess.run(
@@ -999,9 +1056,35 @@ def analyze(binary_path, output_path=None, is_firmware=False):
     for binary in binaries_to_analyze:
         print(f"\n[*] Analyzing: {os.path.basename(binary)}")
         
-        # Step 1: Ghidra extraction
+        # Step 0.5: Detect architecture BEFORE Ghidra analysis
+        detected_arch = None
+        try:
+            # Import our architecture detector
+            import sys
+            if BASE_DIR not in sys.path:
+                sys.path.insert(0, BASE_DIR)
+            from standalone import detect_architecture_detailed
+            
+            arch_result = detect_architecture_detailed(binary)
+            if arch_result and arch_result.get('final', {}).get('architecture') != 'Unknown':
+                final = arch_result.get('final', {})
+                detected_arch = final.get('architecture')
+                confidence = final.get('confidence', 0)
+                print(f"  Architecture detected: {detected_arch} ({confidence}% confidence)")
+                
+                # Add bits/endian if needed
+                if final.get('bits') == 64 and '/64-bit' not in detected_arch:
+                    detected_arch = f"{detected_arch}/64-bit"
+                if final.get('endian') == 'BE' and '/BE' not in detected_arch:
+                    detected_arch = f"{detected_arch}/BE"
+        except ImportError:
+            print("  Architecture detection module not available")
+        except Exception as e:
+            print(f"  Architecture detection failed: {e}")
+        
+        # Step 1: Ghidra extraction (with detected architecture)
         temp_dir = os.path.join(TEMP_DIR, os.path.basename(binary))
-        functions = extract_graph_with_ghidra(binary, temp_dir)
+        functions = extract_graph_with_ghidra(binary, temp_dir, architecture=detected_arch)
         
         if not functions:
             print(f"     No functions extracted from {os.path.basename(binary)}")

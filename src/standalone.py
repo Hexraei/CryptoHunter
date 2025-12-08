@@ -339,12 +339,46 @@ async def run_real_analysis(job_id, file_path, filename, size, file_hash):
                 
                 # Summary from Ghidra
                 ghidra_summary = ghidra_result.get("summary", {})
+                
+                # Also run our dual-method architecture detection for enriched results
+                arch_detection_details = detect_architecture_detailed(file_path)
+                if arch_detection_details and arch_detection_details.get('final', {}).get('architecture') != 'Unknown':
+                    results["architecture_detection"] = {
+                        "method_1": {
+                            "name": arch_detection_details['method_1'].get('name', 'Capstone Disassembly'),
+                            "architecture": arch_detection_details['method_1'].get('architecture'),
+                            "confidence": arch_detection_details['method_1'].get('confidence', 0)
+                        },
+                        "method_2": {
+                            "name": arch_detection_details['method_2'].get('name', 'Header + Prologue'),
+                            "architecture": arch_detection_details['method_2'].get('architecture'),
+                            "confidence": arch_detection_details['method_2'].get('confidence', 0)
+                        },
+                        "final": arch_detection_details.get('final', {})
+                    }
+                    # Use our detection if Ghidra didn't provide architecture
+                    detected_arch = metadata.get("binary", "Unknown")
+                    if detected_arch == "Unknown":
+                        final = arch_detection_details.get('final', {})
+                        detected_arch = final.get('architecture', 'Unknown')
+                        if final.get('bits') == 64:
+                            detected_arch = f"{detected_arch}/64-bit"
+                        if final.get('endian') == 'BE':
+                            detected_arch = f"{detected_arch}/BE"
+                else:
+                    detected_arch = metadata.get("binary", "Unknown")
+                    results["architecture_detection"] = {
+                        "method_1": {"name": "Capstone Disassembly", "architecture": None, "confidence": 0},
+                        "method_2": {"name": "Header + Prologue", "architecture": None, "confidence": 0},
+                        "final": {"architecture": detected_arch, "confidence": 0, "method": "ghidra"}
+                    }
+                
                 results["summary"] = {
                     "analysis_method": "ghidra_gnn",
                     "crypto_detected": ghidra_summary.get("crypto_detected", False),
                     "crypto_count": ghidra_summary.get("crypto_count", 0),
                     "protocols_detected": ghidra_summary.get("protocols_detected", 0),
-                    "architecture": metadata.get("binary", "Unknown"),
+                    "architecture": detected_arch,
                     "class_distribution": ghidra_summary.get("class_distribution", {})
                 }
                 
@@ -519,16 +553,25 @@ async def run_real_analysis(job_id, file_path, filename, size, file_hash):
     # Analyze all files (original or extracted)
     all_classifications = []
     arch_detected = "Unknown"
+    arch_detection_details = None  # Store detailed architecture detection
     
     for fpath in files_to_analyze:
         try:
             crypto_detected, classifications = analyze_binary_heuristic(fpath)
             all_classifications.extend(classifications)
             
-            # Try to detect architecture from extracted files
-            arch = detect_architecture(fpath)
-            if arch != "Unknown":
-                arch_detected = arch
+            # Try to detect architecture from extracted files using detailed method
+            if arch_detected == "Unknown":
+                arch_details = detect_architecture_detailed(fpath)
+                if arch_details and arch_details.get('final', {}).get('architecture') != 'Unknown':
+                    arch_detection_details = arch_details
+                    final = arch_details.get('final', {})
+                    arch = final.get('architecture', 'Unknown')
+                    if final.get('bits') == 64:
+                        arch = f"{arch}/64-bit"
+                    if final.get('endian') == 'BE':
+                        arch = f"{arch}/BE"
+                    arch_detected = arch
         except:
             continue
     
@@ -548,6 +591,29 @@ async def run_real_analysis(job_id, file_path, filename, size, file_hash):
     
     results["classifications"] = unique_classifications
     results["firmware_intelligence"] = firmware_intelligence
+    
+    # Add detailed architecture detection results
+    if arch_detection_details:
+        results["architecture_detection"] = {
+            "method_1": {
+                "name": arch_detection_details['method_1'].get('name', 'Capstone Disassembly'),
+                "architecture": arch_detection_details['method_1'].get('architecture'),
+                "confidence": arch_detection_details['method_1'].get('confidence', 0)
+            },
+            "method_2": {
+                "name": arch_detection_details['method_2'].get('name', 'Header + Prologue'),
+                "architecture": arch_detection_details['method_2'].get('architecture'),
+                "confidence": arch_detection_details['method_2'].get('confidence', 0)
+            },
+            "final": arch_detection_details.get('final', {})
+        }
+    else:
+        results["architecture_detection"] = {
+            "method_1": {"name": "Capstone Disassembly", "architecture": None, "confidence": 0},
+            "method_2": {"name": "Header + Prologue", "architecture": None, "confidence": 0},
+            "final": {"architecture": arch_detected, "confidence": 0, "method": "fallback"}
+        }
+    
     results["summary"] = {
         "crypto_detected": any(c["class_id"] > 0 for c in unique_classifications) or firmware_intelligence.get("encryption_detected", False),
         "crypto_count": len([c for c in unique_classifications if c["class_id"] > 0]),
@@ -1037,170 +1103,360 @@ def calculate_entropy(data):
 
 
 def detect_architecture(file_path):
-    """Detect binary architecture including Z80, AVR, Xtensa, RISC-V."""
+    """
+    Detect binary architecture using multiple methods and return detailed results.
+    
+    Returns a dict with:
+    - method_1: Capstone-based disassembly analysis (instruction validation)
+    - method_2: Header + Prologue pattern matching
+    - final: Ensemble consensus with highest confidence
+    
+    For backwards compatibility, if called as part of existing code expecting a string,
+    convert using: result['final']['architecture'] or str(result)
+    """
+    try:
+        result = detect_architecture_detailed(file_path)
+        # Return just the final architecture string for backwards compatibility
+        final = result.get('final', {})
+        arch = final.get('architecture', 'Unknown')
+        if final.get('bits') == 64:
+            arch = f"{arch}/64-bit"
+        if final.get('endian') == 'BE':
+            arch = f"{arch}/BE"
+        return arch
+    except Exception:
+        return "Unknown"
+
+
+def detect_architecture_detailed(file_path):
+    """
+    Detect binary architecture using 2 independent methods and return detailed results.
+    
+    Returns:
+        dict with 'method_1', 'method_2', and 'final' results
+    """
+    results = {
+        'method_1': {'name': 'Capstone Disassembly', 'architecture': None, 'confidence': 0.0, 'details': {}},
+        'method_2': {'name': 'Header + Prologue', 'architecture': None, 'confidence': 0.0, 'details': {}},
+        'final': {'architecture': 'Unknown', 'confidence': 0.0, 'bits': 32, 'endian': 'LE', 'method': 'none'}
+    }
+    
     try:
         with open(file_path, 'rb') as f:
-            data = f.read(8192)  # Read more for better detection
+            data = f.read()
+    except Exception as e:
+        results['final']['error'] = str(e)
+        return results
+    
+    # ================================================================
+    # METHOD 1: Capstone-based strict disassembly analysis
+    # ================================================================
+    try:
+        from arch_detection.capstone_detector import CapstoneDetector
+        capstone_detector = CapstoneDetector()
+        capstone_results = capstone_detector.detect(data)
+        
+        if capstone_results:
+            best = capstone_results[0]
+            results['method_1'] = {
+                'name': 'Capstone Disassembly',
+                'architecture': best.architecture,
+                'confidence': round(best.confidence * 100, 1),
+                'bits': best.bits,
+                'endian': best.endian,
+                'details': {
+                    'coverage': best.details.get('valid_coverage', 0),
+                    'continuity': best.details.get('continuity_score', 0),
+                    'offset': best.offset
+                }
+            }
+    except Exception as e:
+        results['method_1']['error'] = str(e)
+    
+    # ================================================================
+    # METHOD 2: Header parsing + Prologue pattern matching
+    # ================================================================
+    try:
+        header_result = None
+        prologue_result = None
+        
+        # Header detection (ELF/PE/Cortex-M)
+        try:
+            from arch_detection.header_detector import HeaderDetector
+            header_detector = HeaderDetector()
+            header_results = header_detector.detect(data)
+            if header_results:
+                header_result = header_results[0]
+        except Exception:
+            pass
+        
+        # Prologue pattern detection
+        try:
+            from arch_detection.prologue_detector import PrologueDetector
+            prologue_detector = PrologueDetector()
+            prologue_results = prologue_detector.detect(data)
+            if prologue_results:
+                prologue_result = prologue_results[0]
+        except Exception:
+            pass
+        
+        # Combine header + prologue
+        if header_result and header_result.confidence > 0:
+            results['method_2'] = {
+                'name': 'Header + Prologue',
+                'architecture': header_result.architecture,
+                'confidence': round(header_result.confidence * 100, 1),
+                'bits': header_result.bits,
+                'endian': header_result.endian,
+                'details': {
+                    'source': header_result.details.get('source', 'header'),
+                    'format': header_result.details.get('format', 'unknown')
+                }
+            }
+        elif prologue_result and prologue_result.confidence > 0:
+            results['method_2'] = {
+                'name': 'Header + Prologue',
+                'architecture': prologue_result.architecture,
+                'confidence': round(prologue_result.confidence * 100, 1),
+                'bits': prologue_result.bits,
+                'endian': prologue_result.endian,
+                'details': {
+                    'source': 'prologue_patterns',
+                    'matches': prologue_result.details.get('matches', 0)
+                }
+            }
+        else:
+            results['method_2']['details'] = {'source': 'none', 'reason': 'No headers or prologues found'}
+    except Exception as e:
+        results['method_2']['error'] = str(e)
+    
+    # ================================================================
+    # FINAL: Ensemble consensus 
+    # ================================================================
+    try:
+        from arch_detection.ensemble import detect_architecture_file
+        
+        ensemble_result = detect_architecture_file(file_path)
+        if ensemble_result:
+            results['final'] = {
+                'architecture': ensemble_result.architecture,
+                'confidence': round(ensemble_result.confidence * 100, 1),
+                'bits': ensemble_result.bits,
+                'endian': ensemble_result.endian,
+                'method': 'ensemble',
+                'agreement': {
+                    'methods_agreed': ensemble_result.details.get('methods_agreed', 0),
+                    'total_methods': ensemble_result.details.get('total_methods', 0),
+                    'winning_detector': ensemble_result.details.get('winning_detector', 'unknown')
+                }
+            }
+    except ImportError:
+        # Fallback: Use best of method 1 or method 2
+        m1_conf = results['method_1'].get('confidence', 0)
+        m2_conf = results['method_2'].get('confidence', 0)
+        
+        if m1_conf >= m2_conf and m1_conf > 0:
+            results['final'] = {
+                'architecture': results['method_1']['architecture'],
+                'confidence': m1_conf,
+                'bits': results['method_1'].get('bits', 32),
+                'endian': results['method_1'].get('endian', 'LE'),
+                'method': 'capstone_fallback'
+            }
+        elif m2_conf > 0:
+            results['final'] = {
+                'architecture': results['method_2']['architecture'],
+                'confidence': m2_conf,
+                'bits': results['method_2'].get('bits', 32),
+                'endian': results['method_2'].get('endian', 'LE'),
+                'method': 'header_prologue_fallback'
+            }
+    except Exception as e:
+        results['final']['error'] = str(e)
+    
+    # ================================================================
+    # FIRMWARE-SPECIFIC FALLBACK (if ensemble didn't detect)
+    # ================================================================
+    if results['final'].get('architecture') in [None, 'Unknown'] or results['final'].get('confidence', 0) < 30:
         
         # ESP32/ESP8266 magic detection (Xtensa)
-        # ESP image header: byte 0 = 0xE9, byte 12 = chip ID
         if len(data) > 12 and data[0] == 0xE9:
             chip_id = data[12]
             chip_map = {
-                0: ("ESP32", "Xtensa/ESP32-LX6"),         # Xtensa LX6
-                2: ("ESP32-S2", "Xtensa/ESP32-S2-LX7"),   # Xtensa LX7
-                5: ("ESP32-C3", "RISC-V/ESP32-C3"),       # RISC-V!
-                9: ("ESP32-S3", "Xtensa/ESP32-S3-LX7"),   # Xtensa LX7
-                12: ("ESP32-C2", "RISC-V/ESP32-C2"),      # RISC-V!
-                13: ("ESP32-C6", "RISC-V/ESP32-C6"),      # RISC-V!
+                0: ("ESP32", "Xtensa/ESP32-LX6"),
+                2: ("ESP32-S2", "Xtensa/ESP32-S2-LX7"),
+                5: ("ESP32-C3", "RISC-V/ESP32-C3"),
+                9: ("ESP32-S3", "Xtensa/ESP32-S3-LX7"),
+                12: ("ESP32-C2", "RISC-V/ESP32-C2"),
+                13: ("ESP32-C6", "RISC-V/ESP32-C6"),
             }
             if chip_id in chip_map:
                 chip_name, arch = chip_map[chip_id]
-                return arch
-            return "ESP/Unknown"
+                results['final'] = {
+                    'architecture': arch,
+                    'confidence': 95.0,
+                    'bits': 32,
+                    'endian': 'LE',
+                    'method': 'esp_magic'
+                }
         
         # ELF format
-        if data[:4] == b'\x7fELF':
-            arch_byte = data[18]
+        elif data[:4] == b'\x7fELF':
+            arch_byte = data[18] if len(data) > 18 else 0
             arch_map = {
-                3: "x86", 62: "x86_64", 40: "ARM", 183: "ARM64", 
+                3: "x86", 62: "x86_64", 40: "ARM", 183: "ARM64",
                 8: "MIPS", 243: "RISC-V", 20: "PowerPC", 94: "Xtensa"
             }
-            return arch_map.get(arch_byte, f"ELF-{arch_byte}")
+            arch = arch_map.get(arch_byte, f"ELF-{arch_byte}")
+            results['final'] = {
+                'architecture': arch,
+                'confidence': 98.0,
+                'bits': 64 if arch_byte in [62, 183] else 32,
+                'endian': 'BE' if data[5] == 2 else 'LE',
+                'method': 'elf_header'
+            }
         
         # PE/Windows
         elif data[:2] == b'MZ':
-            return "PE/x86"
+            results['final'] = {
+                'architecture': "PE/x86",
+                'confidence': 90.0,
+                'bits': 32,
+                'endian': 'LE',
+                'method': 'pe_header'
+            }
         
-        # uImage (Linux) - parse architecture from header
+        # uImage (Linux)
         elif data[:4] == b'\x27\x05\x19\x56':
-            # uImage header: bytes 28-29 contain ih_os and ih_arch
-            # ih_arch is at offset 29 (0-indexed)
             if len(data) > 30:
                 ih_arch = data[29]
                 uimage_arch_map = {
-                    0: "Invalid",
-                    1: "Alpha",
-                    2: "ARM",
-                    3: "x86",
-                    4: "IA64",
-                    5: "MIPS",  # This is what OpenWRT uses!
-                    6: "MIPS64",
-                    7: "PowerPC",
-                    8: "S390",
-                    9: "SuperH",
-                    10: "SPARC",
-                    11: "SPARC64",
-                    12: "M68K",
-                    15: "RISC-V",
-                    21: "ARC",
-                    22: "ARM64",
-                    23: "X86_64",
-                    24: "Xtensa",
+                    2: "ARM", 3: "x86", 5: "MIPS", 6: "MIPS64",
+                    7: "PowerPC", 15: "RISC-V", 22: "ARM64", 24: "Xtensa"
                 }
-                arch_name = uimage_arch_map.get(ih_arch, f"uImage-arch-{ih_arch}")
-                return f"uImage/{arch_name}"
-            return "uImage"
+                arch_name = uimage_arch_map.get(ih_arch, f"uImage-{ih_arch}")
+                results['final'] = {
+                    'architecture': f"uImage/{arch_name}",
+                    'confidence': 95.0,
+                    'bits': 64 if ih_arch in [6, 22] else 32,
+                    'endian': 'BE',
+                    'method': 'uimage_header'
+                }
         
-        # Intel HEX format (AVR/Arduino)
+        # Intel HEX format (AVR/Arduino) - Capstone doesn't support AVR
         elif data[:1] == b':' and b':10' in data[:20]:
-            return "AVR/Intel-HEX"
+            results['final'] = {
+                'architecture': "AVR/Intel-HEX",
+                'confidence': 90.0,
+                'bits': 8,
+                'endian': 'LE',
+                'method': 'intel_hex_format'
+            }
         
-        # Motorola S-Record (Z80, embedded)
+        # Motorola S-Record (Z80, embedded) - Capstone doesn't support Z80
         elif data[:2] == b'S0' or data[:2] == b'S1':
-            return "Z80/S-Record"
+            results['final'] = {
+                'architecture': "Z80/S-Record",
+                'confidence': 85.0,
+                'bits': 8,
+                'endian': 'LE',
+                'method': 'srec_format'
+            }
         
-        # Z80 detection (look for Z80-specific patterns)
-        # Z80 RST vectors at address 0x00, 0x08, 0x10, etc.
-        # Common Z80 opcodes: C9 (RET), C3 (JP), CD (CALL)
-        z80_score = 0
-        if data[0:1] in [b'\xc3', b'\xc9', b'\x00']:  # Common Z80 start
-            z80_score += 1
-        if b'\xc9' in data[:64]:  # RET instruction
-            z80_score += 1
-        if b'\xc3' in data[:64]:  # JP instruction
-            z80_score += 1
-        if z80_score >= 2:
-            return "Z80"
-        
-        # AVR detection (16-bit instructions, RJMP at start)
-        # RJMP = 0xCxxx pattern
-        if data[0] >= 0x0c and data[0] <= 0x0f and len(data) > 2:
-            if data[2] >= 0x0c and data[2] <= 0x0f:  # Multiple RJMP = vector table
-                return "AVR"
-        
-        # Xtensa/ESP32 detection (for stripped binaries)
-        # Key: ENTRY instruction (op0=6, high nibble=3) = 0x36 pattern
-        # This is THE defining instruction for Xtensa windowed register ABI
-        xtensa_score = 0
-        entry_count = 0
-        call_count = 0
-        retw_count = 0
-        
-        for i in range(min(256, len(data) - 2)):
-            byte0 = data[i]
-            byte1 = data[i + 1] if i + 1 < len(data) else 0
+        # Z80 opcode detection - Capstone doesn't support Z80
+        else:
+            z80_score = 0
+            if len(data) >= 64:
+                if data[0:1] in [b'\xc3', b'\xc9', b'\x00']:  # JP, RET, NOP
+                    z80_score += 1
+                if b'\xc9' in data[:64]:  # RET instruction
+                    z80_score += 1
+                if b'\xc3' in data[:64]:  # JP instruction
+                    z80_score += 1
+                if b'\xcd' in data[:64]:  # CALL instruction
+                    z80_score += 1
             
-            # ENTRY instruction: op0=6, bits[7:4]=3 -> 0x36 pattern
-            if (byte0 & 0x0F) == 0x06 and (byte0 >> 4) == 0x03:
-                entry_count += 1
-            # CALL instructions: op0=5
-            if (byte0 & 0x0F) == 0x05:
-                call_count += 1
-            # RETW.N: 0x1D 0xF0
-            if byte0 == 0x1D and byte1 == 0xF0:
-                retw_count += 1
+            if z80_score >= 3:
+                results['final'] = {
+                    'architecture': "Z80",
+                    'confidence': 70.0,
+                    'bits': 8,
+                    'endian': 'LE',
+                    'method': 'z80_opcodes'
+                }
+            
+            # AVR detection (16-bit instructions, RJMP at start) - Capstone doesn't support AVR
+            elif len(data) > 4 and data[0] >= 0x0c and data[0] <= 0x0f:
+                if data[2] >= 0x0c and data[2] <= 0x0f:  # Multiple RJMP = vector table
+                    results['final'] = {
+                        'architecture': "AVR",
+                        'confidence': 75.0,
+                        'bits': 8,
+                        'endian': 'LE',
+                        'method': 'avr_rjmp_pattern'
+                    }
+            
+            # Xtensa/ESP32 opcode detection - Capstone doesn't support Xtensa
+            elif len(data) >= 256:
+                xtensa_score = 0
+                entry_count = 0
+                call_count = 0
+                retw_count = 0
+                
+                for i in range(min(256, len(data) - 2)):
+                    byte0 = data[i]
+                    byte1 = data[i + 1] if i + 1 < len(data) else 0
+                    
+                    # ENTRY instruction: op0=6, bits[7:4]=3 -> 0x36 pattern
+                    if (byte0 & 0x0F) == 0x06 and (byte0 >> 4) == 0x03:
+                        entry_count += 1
+                    # CALL instructions: op0=5
+                    if (byte0 & 0x0F) == 0x05:
+                        call_count += 1
+                    # RETW.N: 0x1D 0xF0
+                    if byte0 == 0x1D and byte1 == 0xF0:
+                        retw_count += 1
+                
+                if entry_count >= 3 or (entry_count >= 1 and call_count >= 5):
+                    xtensa_score += 2
+                if retw_count >= 2:
+                    xtensa_score += 1
+                
+                if xtensa_score >= 2:
+                    results['final'] = {
+                        'architecture': "Xtensa/ESP32",
+                        'confidence': 80.0,
+                        'bits': 32,
+                        'endian': 'LE',
+                        'method': 'xtensa_opcodes'
+                    }
         
-        if entry_count >= 3 or (entry_count >= 1 and call_count >= 5):
-            xtensa_score += 2
-        if retw_count >= 2:
-            xtensa_score += 1
-        if xtensa_score >= 2:
-            return "Xtensa/ESP32"
-        
-        # ARM Cortex-M detection (for stripped binaries)
-        # Key: Vector table at start with SP in SRAM (0x20XXXXXX) and Thumb mode handlers (odd)
-        if len(data) >= 8:
+        # ARM Cortex-M vector table detection (more reliable than Capstone for Cortex-M)
+        if results['final'].get('architecture') in [None, 'Unknown'] and len(data) >= 8:
             import struct
             initial_sp = struct.unpack('<I', data[0:4])[0]
             reset_handler = struct.unpack('<I', data[4:8])[0]
             
-            # SP should be in SRAM range, reset handler should be odd (Thumb mode)
             sp_in_sram = (initial_sp & 0xE0000000) == 0x20000000
             reset_is_thumb = (reset_handler & 0x1) == 1 and reset_handler < 0x20000000
             
             if sp_in_sram and reset_is_thumb:
-                # Check for PUSH {LR} and POP {PC} patterns
+                # Additional validation: Check for PUSH {LR} patterns
                 push_lr_count = 0
-                pop_pc_count = 0
                 for i in range(0, min(256, len(data) - 1), 2):
                     if data[i+1] == 0xB5:  # PUSH {.., LR}
                         push_lr_count += 1
-                    if data[i+1] == 0xBD:  # POP {.., PC}
-                        pop_pc_count += 1
                 
-                if push_lr_count >= 2 or pop_pc_count >= 2:
-                    return "ARM/Cortex-M"
-        
-        # Linksys/Broadcom firmware (TRX header)
-        if b'HDR0' in data[:16] or data[:4] == b'HDR0':
-            return "Broadcom/TRX"
-        
-        # LZMA compressed (common in router firmware)
-        if data[:3] == b'\x5d\x00\x00':
-            return "LZMA-Compressed"
-        
-        # SquashFS (common in router firmware)
-        if b'sqsh' in data or b'hsqs' in data:
-            return "SquashFS"
-        
-        # JFFS2
-        if data[:2] == b'\x85\x19' or data[:2] == b'\x19\x85':
-            return "JFFS2"
-        
-        return "Unknown"
-    except:
-        return "Unknown"
+                if push_lr_count >= 2:
+                    results['final'] = {
+                        'architecture': "ARM/Cortex-M",
+                        'confidence': 90.0,
+                        'bits': 32,
+                        'endian': 'LE',
+                        'method': 'cortex_m_vector_table'
+                    }
+    
+    return results
 
 
 def detect_protocols(classifications):
