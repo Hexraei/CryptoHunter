@@ -1,6 +1,6 @@
 # infer_crypto.py - Standalone GNN Inference on Graph JSON
 # Run trained model on pre-extracted Ghidra graphs
-# Now with Z80/AVR architecture detection support
+# Now with Z80/AVR/Xtensa architecture detection support
 #
 # Usage: python infer_crypto.py <graph.json> [--model model.pt] [--binary firmware.bin]
 
@@ -13,6 +13,7 @@ import argparse
 try:
     from check_z80 import detect_z80
     from check_avr import detect_avr
+    from check_xtensa import detect_xtensa
     ARCH_DETECTION_AVAILABLE = True
 except ImportError:
     ARCH_DETECTION_AVAILABLE = False
@@ -49,7 +50,7 @@ OPCODE_MAP = {
 
 def detect_architecture(binary_path):
     """
-    Detect Z80/AVR architecture from binary file.
+    Detect Z80/AVR/Xtensa architecture from binary file.
     
     Args:
         binary_path: Path to binary file
@@ -63,34 +64,44 @@ def detect_architecture(binary_path):
     if not os.path.exists(binary_path):
         return {'arch': 'unknown', 'bits': 0, 'endian': 'unknown', 'confidence': 0, 'error': 'file not found'}
     
+    # Run all detectors
     z80_result = detect_z80(binary_path)
     avr_result = detect_avr(binary_path)
+    xtensa_result = detect_xtensa(binary_path)
     
     z80_conf = z80_result.get('confidence', 0)
     avr_conf = avr_result.get('confidence', 0)
+    xtensa_conf = xtensa_result.get('confidence', 0)
     
-    if avr_conf > z80_conf and avr_result.get('is_avr', False):
-        return {
-            'arch': 'AVR',
-            'bits': 8,
-            'endian': 'little',
-            'confidence': round(avr_conf, 3),
-            'indicators': avr_result.get('indicators', [])
-        }
-    elif z80_result.get('is_z80', False):
-        return {
-            'arch': 'Z80',
-            'bits': 8,
-            'endian': 'little',
-            'confidence': round(z80_conf, 3),
-            'indicators': z80_result.get('indicators', [])
-        }
+    # Find best match
+    results = [
+        (xtensa_conf, 'Xtensa', xtensa_result, 32, 'little', xtensa_result.get('is_xtensa', False)),
+        (avr_conf, 'AVR', avr_result, 8, 'little', avr_result.get('is_avr', False)),
+        (z80_conf, 'Z80', z80_result, 8, 'little', z80_result.get('is_z80', False)),
+    ]
+    
+    # Sort by confidence, descending
+    results.sort(key=lambda x: x[0], reverse=True)
+    
+    for conf, arch, result, bits, endian, is_detected in results:
+        if is_detected:
+            return {
+                'arch': arch,
+                'bits': bits,
+                'endian': endian,
+                'confidence': round(conf, 3),
+                'indicators': result.get('indicators', [])
+            }
     
     # Return best guess even if below threshold
-    if avr_conf > z80_conf:
-        return {'arch': 'possibly_AVR', 'bits': 8, 'endian': 'little', 'confidence': round(avr_conf, 3)}
-    elif z80_conf > 0:
-        return {'arch': 'possibly_Z80', 'bits': 8, 'endian': 'little', 'confidence': round(z80_conf, 3)}
+    best = results[0]
+    if best[0] > 0:
+        return {
+            'arch': f'possibly_{best[1]}',
+            'bits': best[3],
+            'endian': best[4],
+            'confidence': round(best[0], 3)
+        }
     
     return {'arch': 'unknown', 'bits': 0, 'endian': 'unknown', 'confidence': 0}
 

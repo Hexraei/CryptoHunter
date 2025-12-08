@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
 Unified Architecture Detection Script for CryptoHunter Framework
-Detects Z80, AVR, and other architectures in binary files.
+Detects Z80, AVR, Xtensa (ESP32/ESP8266), and other architectures in binary files.
 
 This script combines detection for multiple embedded architectures:
 - Z80 (8-bit, Zilog)
 - AVR (8-bit, Atmel/Microchip/Arduino)
+- Xtensa (32-bit, ESP32/ESP8266/Cadence)
 
 GitHub References:
 Z80:
@@ -17,6 +18,10 @@ AVR:
   - vsergeev/vavrdisasm: https://github.com/vsergeev/vavrdisasm
   - imrehorvath/avrdis: https://github.com/imrehorvath/avrdis
   - twinearthsoftware/AVRDisassembler: https://github.com/twinearthsoftware/AVRDisassembler
+
+Xtensa (ESP32/ESP8266):
+  - Espressif ESP-IDF: https://github.com/espressif/esp-idf
+  - Ghidra Xtensa: https://github.com/yath/ghidra-xtensa
 """
 
 import os
@@ -30,12 +35,13 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # Import our detection modules
 from check_z80 import detect_z80, Z80Detector
 from check_avr import detect_avr, AVRDetector
+from check_xtensa import detect_xtensa, XtensaDetector
 
 
 class UnifiedArchDetector:
     """Unified architecture detector supporting multiple architectures."""
     
-    SUPPORTED_ARCHITECTURES = ['z80', 'avr']
+    SUPPORTED_ARCHITECTURES = ['z80', 'avr', 'xtensa']
     
     def __init__(self):
         self.results = []
@@ -62,6 +68,11 @@ class UnifiedArchDetector:
         avr_result = detect_avr(filepath)
         if avr_result.get('confidence', 0) > 0:
             results['avr'] = avr_result
+            
+        # Run Xtensa/ESP32 detection
+        xtensa_result = detect_xtensa(filepath)
+        if xtensa_result.get('confidence', 0) > 0:
+            results['xtensa'] = xtensa_result
             
         # Find best match
         best_arch = None

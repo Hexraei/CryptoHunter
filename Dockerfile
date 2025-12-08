@@ -17,7 +17,7 @@ WORKDIR /app
 # ================================================================
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Java for Ghidra
-    openjdk-17-jdk-headless \
+    openjdk-21-jdk-headless \
     # Build tools
     build-essential \
     git \
@@ -53,12 +53,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ================================================================
-# Install binwalk from source (latest with all plugins)
+# Install binwalk from PyPI
 # ================================================================
-RUN git clone https://github.com/ReFirmLabs/binwalk.git /tmp/binwalk \
-    && cd /tmp/binwalk \
-    && pip install . \
-    && cd / && rm -rf /tmp/binwalk
+RUN pip install --no-cache-dir binwalk
 
 # Install sasquatch for SquashFS variants
 RUN git clone https://github.com/devttys0/sasquatch.git /tmp/sasquatch \
@@ -82,7 +79,7 @@ RUN wget -q "https://github.com/NationalSecurityAgency/ghidra/releases/download/
     && chmod +x /opt/ghidra/support/analyzeHeadless
 
 ENV GHIDRA_PATH=/opt/ghidra
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 
 # ================================================================
 # Python Dependencies - Core
@@ -93,30 +90,24 @@ RUN pip install --no-cache-dir -r requirements.txt
 # ================================================================
 # Python Dependencies - Analysis Tools
 # ================================================================
+# Install PyTorch CPU separately (uses custom index)
 RUN pip install --no-cache-dir \
-    # Graph Neural Networks
-    torch --index-url https://download.pytorch.org/whl/cpu \
+    torch --index-url https://download.pytorch.org/whl/cpu
+
+# Install other ML/analysis dependencies (from PyPI)
+RUN pip install --no-cache-dir \
     torch-geometric \
-    # Machine Learning
     xgboost \
     scikit-learn \
     numpy \
-    # Graph Analysis
     networkx \
-    # Symbolic Execution
-    angr \
-    # Celery for distributed tasks
     celery[redis] \
-    # Database
     sqlalchemy \
     asyncpg \
     psycopg2-binary \
-    # Redis client
     redis \
-    # Export formats
     openpyxl \
     reportlab \
-    # Utilities
     requests \
     tqdm \
     aiofiles \

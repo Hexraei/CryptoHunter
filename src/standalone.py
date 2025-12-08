@@ -1112,6 +1112,35 @@ def detect_architecture(file_path):
             if data[2] >= 0x0c and data[2] <= 0x0f:  # Multiple RJMP = vector table
                 return "AVR"
         
+        # Xtensa/ESP32 detection (for stripped binaries)
+        # Key: ENTRY instruction (op0=6, high nibble=3) = 0x36 pattern
+        # This is THE defining instruction for Xtensa windowed register ABI
+        xtensa_score = 0
+        entry_count = 0
+        call_count = 0
+        retw_count = 0
+        
+        for i in range(min(256, len(data) - 2)):
+            byte0 = data[i]
+            byte1 = data[i + 1] if i + 1 < len(data) else 0
+            
+            # ENTRY instruction: op0=6, bits[7:4]=3 -> 0x36 pattern
+            if (byte0 & 0x0F) == 0x06 and (byte0 >> 4) == 0x03:
+                entry_count += 1
+            # CALL instructions: op0=5
+            if (byte0 & 0x0F) == 0x05:
+                call_count += 1
+            # RETW.N: 0x1D 0xF0
+            if byte0 == 0x1D and byte1 == 0xF0:
+                retw_count += 1
+        
+        if entry_count >= 3 or (entry_count >= 1 and call_count >= 5):
+            xtensa_score += 2
+        if retw_count >= 2:
+            xtensa_score += 1
+        if xtensa_score >= 2:
+            return "Xtensa/ESP32"
+        
         # Linksys/Broadcom firmware (TRX header)
         if b'HDR0' in data[:16] or data[:4] == b'HDR0':
             return "Broadcom/TRX"
