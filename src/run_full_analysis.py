@@ -377,7 +377,7 @@ def extract_graph_with_ghidra(binary_path, output_dir):
 
 def fast_filter_functions(functions):
     """
-    Quick filter to identify suspicious crypto regions.
+    Quick filter to identify suspicious crypto regions using XGBoost.
     
     Input: List of function graphs
     Output: Filtered list of suspicious functions
@@ -386,6 +386,71 @@ def fast_filter_functions(functions):
     print("STEP 2: Fast Filter (XGBoost Pre-Filter)")
     print(f"{'='*60}")
     print(f"  Input: {len(functions)} functions")
+    
+    if not functions:
+        return []
+    
+    # Try to use trained XGBoost model
+    model_path = os.path.join(BASE_DIR, "..", "models", "xgboost_filter.json")
+    
+    try:
+        from xgboost_filter import XGBoostFilter
+        
+        if os.path.exists(model_path):
+            xgb_filter = XGBoostFilter(model_path)
+            print(f"  Using trained XGBoost model")
+            
+            # Prepare function data for XGBoost
+            prepared_funcs = []
+            for func in functions:
+                graph = func.get("graph", {})
+                nodes = graph.get("nodes", [])
+                
+                # Extract bytes if available, otherwise use placeholder
+                func_bytes = func.get("bytes", b"")
+                if isinstance(func_bytes, str):
+                    try:
+                        func_bytes = bytes.fromhex(func_bytes)
+                    except:
+                        func_bytes = b"\x00" * 100
+                
+                prepared = {
+                    "name": func.get("name", ""),
+                    "bytes": func_bytes.hex() if isinstance(func_bytes, bytes) else func_bytes,
+                    "size": func.get("size", len(func_bytes) if func_bytes else 100),
+                    "num_blocks": len(nodes) if nodes else func.get("num_blocks", 5),
+                    "num_calls": func.get("num_calls", 0),
+                    "has_loops": func.get("has_loops", True),
+                    "cyclomatic_complexity": func.get("cyclomatic_complexity", len(nodes)),
+                    "_original": func  # Keep original for later
+                }
+                prepared_funcs.append(prepared)
+            
+            # Filter using XGBoost (use lower threshold for high recall)
+            suspicious_prepared = xgb_filter.filter_suspicious(
+                prepared_funcs, 
+                threshold=0.3,  # Lower threshold to catch more crypto
+                max_candidates=200
+            )
+            
+            # Map back to original functions
+            suspicious = []
+            for p in suspicious_prepared:
+                orig = p.get("_original", p)
+                orig["suspicion_score"] = p.get("suspicion_score", 0.5)
+                suspicious.append(orig)
+            
+            print(f"   XGBoost filtered to {len(suspicious)} suspicious functions")
+            print(f"  -> Reduced by {100*(1 - len(suspicious)/max(1,len(functions))):.1f}%")
+            return suspicious
+            
+    except ImportError:
+        print("  XGBoost module not available, using heuristics")
+    except Exception as e:
+        print(f"  XGBoost error: {e}, using heuristics")
+    
+    # Fallback: Heuristic-based filtering
+    print("  Using heuristic filtering (XGBoost model not loaded)")
     
     crypto_keywords = [
         "aes", "sha", "md5", "encrypt", "decrypt", "cipher", "hash",
@@ -444,8 +509,8 @@ def fast_filter_functions(functions):
     
     suspicious.sort(key=lambda x: x["suspicion_score"], reverse=True)
     
-    print(f"   Filtered to {len(suspicious)} suspicious functions")
-    print(f"  → Reduced by {100*(1 - len(suspicious)/max(1,len(functions))):.1f}%")
+    print(f"   Heuristic filtered to {len(suspicious)} suspicious functions")
+    print(f"  -> Reduced by {100*(1 - len(suspicious)/max(1,len(functions))):.1f}%")
     
     return suspicious
 
