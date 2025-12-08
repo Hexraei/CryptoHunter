@@ -1037,17 +1037,34 @@ def calculate_entropy(data):
 
 
 def detect_architecture(file_path):
-    """Detect binary architecture including Z80, AVR, RISC-V."""
+    """Detect binary architecture including Z80, AVR, Xtensa, RISC-V."""
     try:
         with open(file_path, 'rb') as f:
-            data = f.read(512)  # Read more for better detection
+            data = f.read(8192)  # Read more for better detection
+        
+        # ESP32/ESP8266 magic detection (Xtensa)
+        # ESP image header: byte 0 = 0xE9, byte 12 = chip ID
+        if len(data) > 12 and data[0] == 0xE9:
+            chip_id = data[12]
+            chip_map = {
+                0: ("ESP32", "Xtensa/ESP32-LX6"),         # Xtensa LX6
+                2: ("ESP32-S2", "Xtensa/ESP32-S2-LX7"),   # Xtensa LX7
+                5: ("ESP32-C3", "RISC-V/ESP32-C3"),       # RISC-V!
+                9: ("ESP32-S3", "Xtensa/ESP32-S3-LX7"),   # Xtensa LX7
+                12: ("ESP32-C2", "RISC-V/ESP32-C2"),      # RISC-V!
+                13: ("ESP32-C6", "RISC-V/ESP32-C6"),      # RISC-V!
+            }
+            if chip_id in chip_map:
+                chip_name, arch = chip_map[chip_id]
+                return arch
+            return "ESP/Unknown"
         
         # ELF format
         if data[:4] == b'\x7fELF':
             arch_byte = data[18]
             arch_map = {
                 3: "x86", 62: "x86_64", 40: "ARM", 183: "ARM64", 
-                8: "MIPS", 243: "RISC-V", 20: "PowerPC"
+                8: "MIPS", 243: "RISC-V", 20: "PowerPC", 94: "Xtensa"
             }
             return arch_map.get(arch_byte, f"ELF-{arch_byte}")
         
