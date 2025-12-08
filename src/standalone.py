@@ -1158,6 +1158,30 @@ def detect_architecture(file_path):
         if xtensa_score >= 2:
             return "Xtensa/ESP32"
         
+        # ARM Cortex-M detection (for stripped binaries)
+        # Key: Vector table at start with SP in SRAM (0x20XXXXXX) and Thumb mode handlers (odd)
+        if len(data) >= 8:
+            import struct
+            initial_sp = struct.unpack('<I', data[0:4])[0]
+            reset_handler = struct.unpack('<I', data[4:8])[0]
+            
+            # SP should be in SRAM range, reset handler should be odd (Thumb mode)
+            sp_in_sram = (initial_sp & 0xE0000000) == 0x20000000
+            reset_is_thumb = (reset_handler & 0x1) == 1 and reset_handler < 0x20000000
+            
+            if sp_in_sram and reset_is_thumb:
+                # Check for PUSH {LR} and POP {PC} patterns
+                push_lr_count = 0
+                pop_pc_count = 0
+                for i in range(0, min(256, len(data) - 1), 2):
+                    if data[i+1] == 0xB5:  # PUSH {.., LR}
+                        push_lr_count += 1
+                    if data[i+1] == 0xBD:  # POP {.., PC}
+                        pop_pc_count += 1
+                
+                if push_lr_count >= 2 or pop_pc_count >= 2:
+                    return "ARM/Cortex-M"
+        
         # Linksys/Broadcom firmware (TRX header)
         if b'HDR0' in data[:16] or data[:4] == b'HDR0':
             return "Broadcom/TRX"

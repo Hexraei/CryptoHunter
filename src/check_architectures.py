@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
 Unified Architecture Detection Script for CryptoHunter Framework
-Detects Z80, AVR, Xtensa (ESP32/ESP8266), and other architectures in binary files.
+Detects Z80, AVR, Xtensa (ESP32/ESP8266), ARM Cortex-M, and other architectures.
 
 This script combines detection for multiple embedded architectures:
 - Z80 (8-bit, Zilog)
 - AVR (8-bit, Atmel/Microchip/Arduino)
 - Xtensa (32-bit, ESP32/ESP8266/Cadence)
+- ARM Cortex-M (32-bit, Cortex-M0/M3/M4)
 
 GitHub References:
 Z80:
@@ -36,12 +37,13 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from check_z80 import detect_z80, Z80Detector
 from check_avr import detect_avr, AVRDetector
 from check_xtensa import detect_xtensa, XtensaDetector
+from check_arm_cortex import detect_arm_cortex, ArmCortexDetector
 
 
 class UnifiedArchDetector:
     """Unified architecture detector supporting multiple architectures."""
     
-    SUPPORTED_ARCHITECTURES = ['z80', 'avr', 'xtensa']
+    SUPPORTED_ARCHITECTURES = ['z80', 'avr', 'xtensa', 'arm_cortex']
     
     def __init__(self):
         self.results = []
@@ -73,6 +75,11 @@ class UnifiedArchDetector:
         xtensa_result = detect_xtensa(filepath)
         if xtensa_result.get('confidence', 0) > 0:
             results['xtensa'] = xtensa_result
+            
+        # Run ARM Cortex-M detection
+        arm_result = detect_arm_cortex(filepath)
+        if arm_result.get('confidence', 0) > 0:
+            results['arm_cortex'] = arm_result
             
         # Find best match
         best_arch = None
