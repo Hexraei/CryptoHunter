@@ -18,19 +18,30 @@ class HeaderDetector(BaseDetector):
     name = "header"
     weight = 3.0  # Very high weight - headers are authoritative
     
-    # ELF machine types
+    # ELF machine types (from /usr/include/elf.h)
     ELF_MACHINES = {
+        0x02: ("SPARC", 32, "BE"),
         0x03: ("x86", 32, "LE"),
-        0x08: ("MIPS-BE", 32, "BE"),  # Depends on endian flag
+        0x04: ("m68k", 32, "BE"),
+        0x05: ("m88k", 32, "BE"),
+        0x06: ("Intel-MCU", 32, "LE"),
+        0x07: ("Intel-860", 32, "LE"),
+        0x08: ("MIPS-BE", 32, "BE"),  # MIPS R3000
+        0x0A: ("MIPS-LE", 32, "LE"),  # MIPS RS3_LE (little endian)
         0x14: ("PowerPC", 32, "BE"),
         0x15: ("PowerPC", 64, "BE"),
+        0x16: ("S390", 32, "BE"),
         0x28: ("ARM32", 32, "LE"),
+        0x2A: ("SuperH", 32, "LE"),
         0x2B: ("SPARC", 64, "BE"),
         0x32: ("IA-64", 64, "LE"),
         0x3E: ("x86-64", 64, "LE"),
+        0x53: ("AVR", 8, "LE"),  # Atmel AVR
         0x5E: ("Xtensa", 32, "LE"),
         0xB7: ("ARM64", 64, "LE"),
-        0xF3: ("RISCV32", 32, "LE"),  # Depends on class
+        0xDC: ("Z80", 8, "LE"),
+        0xF3: ("RISCV32", 32, "LE"),  # Depends on class (32 or 64)
+        0xF7: ("BPF", 64, "LE"),  # Linux BPF
     }
     
     # PE machine types
@@ -62,7 +73,13 @@ class HeaderDetector(BaseDetector):
         
         if machine in self.ELF_MACHINES:
             arch, default_bits, default_endian = self.ELF_MACHINES[machine]
-            # Override with actual values from header
+            
+            # Special handling for architectures that vary by class/endian
+            if machine == 0xF3:  # RISC-V
+                arch = "RISCV64" if bits == 64 else "RISCV32"
+            elif machine == 0x08:  # MIPS - use actual endian
+                arch = "MIPS-BE" if endian == "BE" else "MIPS-LE"
+            
             return ArchDetectionResult(
                 architecture=arch,
                 confidence=0.99,  # Very high - from header
@@ -73,13 +90,15 @@ class HeaderDetector(BaseDetector):
                 details={
                     "format": "ELF",
                     "machine": machine,
+                    "machine_hex": hex(machine),
                     "class": elf_class
                 }
             )
         else:
+            # Unknown machine - still return with useful info
             return ArchDetectionResult(
-                architecture=f"ELF-{machine}",
-                confidence=0.80,
+                architecture=f"Unknown-{machine}",
+                confidence=0.50,  # Lower confidence for unknown
                 offset=0,
                 bits=bits,
                 endian=endian,
@@ -87,7 +106,9 @@ class HeaderDetector(BaseDetector):
                 details={
                     "format": "ELF",
                     "machine": machine,
-                    "unknown": True
+                    "machine_hex": hex(machine),
+                    "unknown": True,
+                    "note": f"Unknown ELF machine type {machine} (0x{machine:02X})"
                 }
             )
     

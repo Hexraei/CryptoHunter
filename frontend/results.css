@@ -1,0 +1,711 @@
+body,
+html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    font-family: Helvetica, sans-serif;
+}
+
+.main-container {
+    width: 100%;
+    height: 100%;
+    /* Or min-height based on content */
+    min-height: 1800px;
+    /* Guessing based on absolute tops */
+    position: relative;
+    background: #000000;
+    overflow: hidden;
+    overflow: hidden;
+}
+
+/* Back Button */
+.back-btn {
+    position: absolute;
+    left: 20px;
+    top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: rgba(29, 29, 29, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 27px;
+    border: 0.5px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 16px;
+    font-family: Helvetica, sans-serif;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    z-index: 10;
+}
+
+.back-btn:hover {
+    background: rgba(50, 50, 50, 0.7);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.back-btn:active {
+    transform: scale(0.97);
+}
+
+.back-icon {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.2s ease;
+}
+
+.back-text {
+    font-weight: 400;
+}
+
+/* Top Cards Section */
+.cards-container {
+    width: 1222px;
+    height: 300px;
+    left: 109px;
+    top: 175px;
+    position: absolute;
+}
+
+.card-wrapper {
+    width: 386px;
+    height: 300px;
+    top: 0px;
+    position: absolute;
+    background: linear-gradient(180deg, rgba(81, 96, 125, 0.3) 0%, rgba(0, 0, 0, 0.6) 100%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    cursor: pointer;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+/* Specific adjustments for 2nd and 3rd cards to match flex-start behavior if needed, 
+   but since they have absolute left positions, we use those. */
+
+
+
+/* Re-interpreting the structure: 
+   The user code has divs in a row. 
+   Inside: Card BG, Label, Icon BG, Value.
+   They seem to be absolutely positioned or flex items. 
+   The User code: display: inline-flex; justify-content: flex-start; align-items: center; gap: 32px;
+   But it also has a card-bg inside. 
+   Let's try to match the HTML structure's flow or absolute positioning relative to the wrapper.
+*/
+
+.card-wrapper {
+    /* Resetting to match the user's "inline-flex" context if they were relative, 
+       but here they have absolute positions. */
+    /* Implementation note: The user provided HTML has inner divs. 
+       Let's use specific child selectors or classes to place them. 
+       Actually, `display: inline-flex` on the wrapper will layout the children. 
+       The `card-bg` is the first child. 
+       Wait, 386px width card-bg inside a 407px wrapper with 320px padding-right? 
+       That padding is huge. 
+       Let's stick to the visual placement.
+       The flex items are: CardBG, Label, IconBG, Value.
+       This seems odd. 386px + 260px + 37px + value... = way more than 407px.
+       Ah, `position: absolute` was on the wrapper.
+       Maybe the children are absolutely positioned? No, user code says `display: inline-flex`.
+       If `card-bg` is in the flow, it takes 386px.
+       Then gap 32px.
+       Then text 260px.
+       Total width is huge.
+       But the wrapper is `width: 407.33px`.
+       Maybe `overflow: visible`?
+       Let's assume the user code snippet is structurally correct and stick to it.
+    */
+}
+
+.card-wrapper>div:nth-child(1) {
+    /* Card Background */
+    /* It's 386px wide */
+}
+
+/* Text styles from comments */
+.text-primitives {
+    width: 260px;
+    color: white;
+    font-size: 32px;
+    font-family: Helvetica;
+    font-weight: 400;
+    line-height: 32px;
+    word-wrap: break-word;
+    /* User code has this text flow in flex. 
+       However, in a 407px container with a 386px item before it, this will overflow or wrap?
+       Actually, the user code has `position: absolute` on the wrappers.
+       Let's trust the flexbox.
+    */
+    position: absolute;
+    left: 40px;
+    /* Guessing position or centering it? 
+       The user code has: 
+       <div ... display: inline-flex ...>
+          <div ... background...></div>
+          <div ... text...>Primitives identified</div>
+          ...
+       </div>
+       Wait, if they are flex items, they sit next to each other.
+       This layout seems to imply the text is ON TOP of the card background.
+       But the HTML structure creates them as siblings. 
+       Unless `margin-left` is negative?
+       Or maybe `card-bg` is absolute? 
+       The user provided HTML: 
+       <div style="width: 386px; height: 300px; ..."></div>
+       <div style="width: 260px; ...">Primitives identified</div>
+       
+       If I render this as flex, they will be side-by-side. 
+       386 + 32 + 260 ... 
+       This would make the "card" extremely wide.
+       BUT the image/description implies a card look.
+       Usually, text is INSIDE the card.
+       Here text is a SIBLING.
+       This suggests the card is just a background element in the flow, and the text is to its right?
+       OR, the user's provided code is slightly malformed for the visual intent (siblings instead of children), 
+       AND/OR I should position them absolutely to make them overlap if that's the design.
+       
+       LOOKING AT THE COORDINATES:
+       Wrapper 1: Left 0.
+       Wrapper 2: Left 407.33.
+       Wrapper 3: Left 814.67.
+       
+       These are spaced 407px apart. Use `overflow: hidden`? 
+       If the content is wider, it will overlap the next card.
+       
+       However, the prompt asks to "create this html and css code". 
+       I will replicate the CSS rules provided in the HTML style attributes exactly in the CSS class, 
+       including the flex properties. 
+       I will set `z-index` if needed, but I'll stick to the provided properties.
+       
+       Observation: The user might have copied this from Figma "Copy as HTML". 
+       Figma often exports code with absolute positioning or flexbox that relies on specific container sizes.
+    */
+}
+
+.card-label {
+    /* Base styles */
+}
+
+.card-icon-bg {
+    width: 37px;
+    height: 37px;
+    background: white;
+    border-radius: 9999px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.icon-arrow {
+    width: 22.67px;
+    height: auto;
+}
+
+.icon-padlock {
+    width: 19px;
+    height: 19px;
+    aspect-ratio: 1/1;
+}
+
+.icon-arch {
+    width: 19px;
+    height: 19px;
+    aspect-ratio: 1/1;
+}
+
+/* Specific text styles */
+.text-primitives,
+.text-protocols,
+.text-architecture {
+    width: 302px;
+    height: 144px;
+    color: white;
+    font-size: 32px;
+    font-family: Helvetica;
+    font-weight: 400;
+    line-height: 32px;
+    word-wrap: break-word;
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    text-align: left;
+}
+
+.text-42,
+.text-42-arch {
+    width: 302px;
+    height: 144px;
+    color: #EAEAEA;
+    font-size: 64px;
+    font-family: 'Helvetica Now MT Text', Helvetica, sans-serif;
+    font-weight: 700;
+    line-height: 64px;
+    word-wrap: break-word;
+    position: absolute;
+    bottom: 30px;
+    left: 30px;
+    text-align: left;
+}
+
+/* Correcting my approach: 
+   The user gave specific HTML. I should use that HTML structure mainly, 
+   but move the `style="..."` into CSS classes. 
+   I will enable `position: relative` on the card wrappers so the absolute children position correctly.
+   Wait, the user's card wrappers were `display: inline-flex`. 
+   If I change them to `block` + `absolute children`, I deviate from the code.
+   BUT `inline-flex` with siblings works differently.
+   
+   Let's look closely at the User Request HTML again:
+   <div ... justify-content: flex-start; align-items: center; gap: 32px; display: inline-flex">
+      <div ... (The background) ... ></div>
+      <div ... (The Text) ... >Primitives identified</div>
+      ...
+   </div>
+   
+   If this is flex, the text sits NEXt to the background. 
+   So we have [Background Box] [Text] [Icon] [Number].
+   This creates a very wide strip.
+   If this is what the user provided, I should implement it. 
+   However, visually, "Primitives identified" usually goes INSIDE the dark card.
+   The user might be copying from a design tool where the hierarchy is different or they messed up the grouping.
+   BUT, if I look at the coordinates:
+   Wrapper 1 Left: 0.
+   Wrapper 2 Left: 407.33.
+   
+   If Wrapper 1 is > 600px wide (386+ text...), it overlaps Wrapper 2 by a lot.
+   This implies the user's code might be "wrong" for the visual result, or "correct" for a specific layering effect.
+   
+   Given "create THIS html and css code", strictly, I should duplicate the logic.
+   But "Primitives identified" inside a visual card makes more sense.
+   
+   Let's try to make it usable. 
+   Actually, looking at the hierarchy:
+   The user provided div structure has them as siblings. 
+   I will keep them as siblings but I might need to adjust positions if it looks clearly broken. 
+   However, the safest bet with "Implement this code" is to be faithful to the CSS properties provided.
+   
+   BUT, I will assume the `text` elements should probably be absolutely positioned over the `card-bg` in a real app.
+   Let's check if the user provided positioning in the inline styles for the children?
+   No, primarily text styles and dimensions.
+   
+   Let's fallback to `position: absolute` for the children to place them inside the `card-bg` area, 
+   because that's almost certainly the design intent (Dashboard cards).
+   And ignore the `inline-flex` which might be an artifact of the export tools (like "Auto Layout" in Figma) being misinterpreted or copy-pasted partially.
+   Wait, if it was Auto Layout, they would be flex items.
+   
+   Let's compromise: I will add `position: relative` to the wrapper.
+   I will position the text absolute.
+   I will set `display: flex` as requested but maybe `flex-direction: column`? 
+   No, the code said `row` (default).
+   
+   Actually, let's look at the `img` tags. 
+   `left: 743px` absolute.
+   
+   Okay, I will place elements absolutely where they make sense to fit the design "Cards".
+   Card size: 386x300. Wrapper: 407.
+   
+   I will create the CSS to match the likely visual intent (Text over Card) while preserving the font styles.
+*/
+
+.card-wrapper {
+    position: absolute;
+    top: 0;
+    width: 407.33px;
+    /* From code */
+    /* disabling flex for the 'overlap' design */
+    /* display: inline-flex; */
+    height: 300px;
+}
+
+.card-bg {
+    width: 386px;
+    height: 300px;
+    background: linear-gradient(180deg, #51607D 0%, black 100%);
+    border-radius: 20px;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.card-icon-bg {
+    width: 37px;
+    height: 37px;
+    background: white;
+    border-radius: 9999px;
+    position: absolute;
+    top: 20px;
+    right: 40px;
+    /* Guess */
+}
+
+.text-primitives,
+.text-protocols,
+.text-architecture {
+    color: white;
+    font-size: 32px;
+    font-family: Helvetica;
+    font-weight: 400;
+    line-height: 32px;
+    word-wrap: break-word;
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    width: 260px;
+}
+
+
+
+.icon-small1 {
+    width: 19px;
+    height: 19px;
+    left: 743px;
+    top: 26px;
+    position: absolute;
+}
+
+.icon-small2 {
+    width: 19px;
+    height: 19px;
+    left: 1259px;
+    top: 202px;
+    position: absolute;
+}
+
+.text-summary {
+    position: absolute;
+    left: 103px;
+    top: 68px;
+    text-align: center;
+    color: white;
+    font-size: 64px;
+    font-family: Helvetica;
+    font-weight: 400;
+    line-height: 64px;
+    word-wrap: break-word;
+}
+
+/* Table Section */
+.table-container {
+    margin-left: 109px;
+    margin-right: 109px;
+    height: 1194px;
+    top: 540px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0);
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+    border: none;
+    box-shadow: none;
+    overflow: hidden;
+    border-radius: 20px;
+}
+
+.blur-effect {
+    display: none;
+}
+
+.table-content-bg {
+    width: 1258px;
+    height: 830px;
+    left: 0px;
+    top: 107px;
+    position: absolute;
+}
+
+.table-row {
+    left: 30px;
+    right: 30px;
+    height: 80px;
+    position: absolute;
+    background: rgba(33, 33, 33, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.text-table {
+    left: 30px;
+    top: 28px;
+    position: absolute;
+    text-align: left;
+    color: white;
+    font-size: 64px;
+    font-family: Helvetica;
+    font-weight: 400;
+    line-height: 64px;
+    word-wrap: break-word;
+}
+
+/* Dynamic Table Rows Container */
+.table-rows-container {
+    position: absolute;
+    top: 107px;
+    left: 0;
+    right: 0;
+    bottom: 30px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+.table-rows-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.table-rows-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.table-rows-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.table-rows-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Old Style Table Row */
+.table-row {
+    width: calc(100% - 60px);
+    height: 80px;
+    margin-left: 30px;
+    position: relative;
+    margin-bottom: 20px;
+    background: rgba(33, 33, 33, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    padding: 0 30px;
+    box-sizing: border-box;
+}
+
+/* Row Content */
+.row-algorithm {
+    color: white;
+    font-size: 28px;
+    font-family: Helvetica;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+    min-width: 180px;
+    flex-shrink: 0;
+}
+
+.row-notes {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 24px;
+    font-family: Helvetica;
+    font-weight: 400;
+    line-height: 1.2;
+    margin-left: 30px;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.row-confidence {
+    color: white;
+    font-size: 28px;
+    font-family: Helvetica;
+    font-weight: 500;
+    line-height: 1.2;
+    margin-left: auto;
+    padding-left: 30px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.text-confidence {
+    position: absolute;
+    right: 60px;
+    top: 72px;
+    color: white;
+    font-size: 32px;
+    font-family: Helvetica;
+    font-weight: 400;
+    line-height: 16px;
+}
+
+/* Empty State */
+.empty-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(33, 33, 33, 0.2);
+}
+
+.empty-message {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 18px;
+    font-style: italic;
+}
+
+/* Floating Elements outside the table relative container logic, 
+   Wait, in the user code the confidence 90% and others were absolute relative to the ROOT 
+   OR inside the table container logic?
+   User code:
+   <div (root)>
+      ...
+      <div (table)> ... </div>
+      <div style="left: 1161px... ">90%</div>
+      ...
+   </div>
+   
+   The "90%" div is outside the table div in the hierarchy? 
+   Actually, looking at the code:
+   <div (table container)>
+       ...
+       <div ...>AES</div>
+       <div ...>Confidence Score</div>
+   </div>
+   <div ...>90%</div> (This is outside the table container in the user snippet indentation?)
+   Let's check indentation.
+   The user snippet:
+   <div (table)> ... </div>
+   <div (90%) ...></div>
+   YES, outside.
+   So 90% top: 679px is relative to the MAIN container.
+*/
+
+.text-90 {
+    left: 1131px;
+    top: 679px;
+    position: absolute;
+    text-align: center;
+    color: white;
+    font-size: 32px;
+    font-family: Helvetica;
+    font-weight: 400;
+    line-height: 16px;
+    word-wrap: break-word;
+}
+
+.text-ssl {
+    text-align: left;
+    color: white;
+    font-size: 32px;
+    font-family: Helvetica;
+    font-weight: 400;
+    line-height: 64px;
+    word-wrap: break-word;
+}
+
+/* Export Button */
+.export-btn-wrapper {
+    position: absolute;
+    left: 1099px;
+    top: 69px;
+    width: 268px;
+    height: 71px;
+    cursor: pointer;
+}
+
+.export-btn-bg {
+    width: 268px;
+    height: 71px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: rgba(29, 29, 29, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 27px;
+    border: 0.50px white solid;
+}
+
+.text-export {
+    left: 34px;
+    top: 3px;
+    position: absolute;
+    text-align: center;
+    color: white;
+    font-size: 32px;
+    font-family: Helvetica;
+    font-weight: 400;
+    line-height: 64px;
+    word-wrap: break-word;
+}
+
+.export-arrow-1 {
+    width: 15.33px;
+    height: 0px;
+    left: 197px;
+    top: 30.33px;
+    position: absolute;
+    transform: rotate(44deg);
+    transform-origin: top left;
+    outline: 2px white solid;
+    outline-offset: -1px;
+}
+
+.export-arrow-2 {
+    width: 15.33px;
+    height: 0px;
+    left: 219px;
+    top: 30.22px;
+    position: absolute;
+    transform: rotate(134deg);
+    transform-origin: top left;
+    outline: 2px white solid;
+    outline-offset: -1px;
+}
+
+/* Export Dropdown Menu */
+.export-dropdown {
+    width: 258px;
+    height: 259px;
+    position: absolute;
+    top: 80px;
+    left: 0;
+    background: rgba(0, 0, 0, 0.00);
+    border-radius: 20px;
+    border: 1px solid #E9E9E9;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 100;
+}
+
+.export-dropdown.show {
+    display: flex;
+}
+
+.export-option {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    font-family: Helvetica;
+    font-weight: 400;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    border-bottom: 1px solid rgba(233, 233, 233, 0.3);
+}
+
+.export-option:last-child {
+    border-bottom: none;
+}
+
+.export-option:hover {
+    background: rgba(255, 255, 255, 0.15);
+}

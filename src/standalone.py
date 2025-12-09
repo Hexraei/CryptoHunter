@@ -75,6 +75,15 @@ app.add_middleware(
 if (FRONTEND_DIR / "assets").exists():
     app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
 
+# Mount new Cryptex frontend (from project root /frontend folder)
+CRYPTEX_FRONTEND = BASE_DIR.parent / "frontend"
+if CRYPTEX_FRONTEND.exists():
+    app.mount("/frontend", StaticFiles(directory=CRYPTEX_FRONTEND), name="cryptex_frontend")
+    # Also serve progress icons directly
+    PROGRESS_ICONS = CRYPTEX_FRONTEND / "progresstabicons"
+    if PROGRESS_ICONS.exists():
+        app.mount("/progresstabicons", StaticFiles(directory=PROGRESS_ICONS), name="progress_icons")
+
 
 @app.get("/")
 async def root():
@@ -235,9 +244,28 @@ async def root():
     """)
 
 
+@app.get("/cryptex")
+async def cryptex_ui():
+    """Serve the new Cryptex frontend."""
+    cryptex_index = BASE_DIR.parent / "frontend" / "index.html"
+    if cryptex_index.exists():
+        return FileResponse(cryptex_index)
+    raise HTTPException(404, "Cryptex frontend not found")
+
+
+@app.get("/cryptex/results")
+async def cryptex_results():
+    """Serve Cryptex results page."""
+    results_page = BASE_DIR.parent / "frontend" / "results.html"
+    if results_page.exists():
+        return FileResponse(results_page)
+    raise HTTPException(404, "Results page not found")
+
+
 @app.get("/api/health")
 async def health():
     return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+
 
 
 @app.post("/api/analyze")
@@ -245,8 +273,13 @@ async def analyze(file: UploadFile = File(...)):
     """Upload and analyze firmware."""
     job_id = str(uuid.uuid4())[:8]
     
+    # Sanitize filename - extract just the basename (remove path separators)
+    safe_filename = os.path.basename(file.filename.replace('\\', '/'))
+    if not safe_filename:
+        safe_filename = "uploaded_binary"
+    
     # Save file
-    file_path = UPLOAD_DIR / f"{job_id}_{file.filename}"
+    file_path = UPLOAD_DIR / f"{job_id}_{safe_filename}"
     async with aiofiles.open(file_path, 'wb') as f:
         content = await file.read()
         await f.write(content)
@@ -296,8 +329,12 @@ async def run_real_analysis(job_id, file_path, filename, size, file_hash):
     # ==================================================================
     # FULL GHIDRA PIPELINE - For proper crypto detection
     # ==================================================================
+    # Set SKIP_GHIDRA=True for fast heuristic-only analysis (default)
+    # Set SKIP_GHIDRA=False to enable full Ghidra analysis (slow but thorough)
+    SKIP_GHIDRA = os.environ.get('SKIP_GHIDRA', 'true').lower() == 'true'
+    
     ghidra_path = os.environ.get('GHIDRA_PATH', r'D:\ghidra_11.4.2_PUBLIC')
-    ghidra_available = os.path.exists(ghidra_path)
+    ghidra_available = os.path.exists(ghidra_path) and not SKIP_GHIDRA
     
     if ghidra_available:
         try:
@@ -349,7 +386,7 @@ async def run_real_analysis(job_id, file_path, filename, size, file_hash):
                 # Summary from Ghidra
                 ghidra_summary = ghidra_result.get("summary", {})
                 
-                # Also run our dual-method architecture detection for enriched results
+                # Also run our 3-method architecture detection for enriched results
                 arch_detection_details = detect_architecture_detailed(file_path)
                 if arch_detection_details and arch_detection_details.get('final', {}).get('architecture') != 'Unknown':
                     results["architecture_detection"] = {
@@ -363,22 +400,27 @@ async def run_real_analysis(job_id, file_path, filename, size, file_hash):
                             "architecture": arch_detection_details['method_2'].get('architecture'),
                             "confidence": arch_detection_details['method_2'].get('confidence', 0)
                         },
+                        "method_3": {
+                            "name": arch_detection_details['method_3'].get('name', 'String Search'),
+                            "architecture": arch_detection_details['method_3'].get('architecture'),
+                            "confidence": arch_detection_details['method_3'].get('confidence', 0),
+                            "details": arch_detection_details['method_3'].get('details', {})
+                        },
                         "final": arch_detection_details.get('final', {})
                     }
-                    # Use our detection if Ghidra didn't provide architecture
-                    detected_arch = metadata.get("binary", "Unknown")
-                    if detected_arch == "Unknown":
-                        final = arch_detection_details.get('final', {})
-                        detected_arch = final.get('architecture', 'Unknown')
-                        if final.get('bits') == 64:
-                            detected_arch = f"{detected_arch}/64-bit"
-                        if final.get('endian') == 'BE':
-                            detected_arch = f"{detected_arch}/BE"
+                    # Use final ensemble result as detected_arch
+                    final = arch_detection_details.get('final', {})
+                    detected_arch = final.get('architecture', 'Unknown')
+                    if final.get('bits') == 64:
+                        detected_arch = f"{detected_arch}/64-bit"
+                    if final.get('endian') == 'BE':
+                        detected_arch = f"{detected_arch}/BE"
                 else:
                     detected_arch = metadata.get("binary", "Unknown")
                     results["architecture_detection"] = {
                         "method_1": {"name": "Capstone Disassembly", "architecture": None, "confidence": 0},
                         "method_2": {"name": "Header + Prologue", "architecture": None, "confidence": 0},
+                        "method_3": {"name": "String Search", "architecture": None, "confidence": 0},
                         "final": {"architecture": detected_arch, "confidence": 0, "method": "ghidra"}
                     }
                 
@@ -409,6 +451,30 @@ async def run_real_analysis(job_id, file_path, filename, size, file_hash):
     # ==================================================================
     # FALLBACK: Heuristic analysis (when Ghidra unavailable)
     # ==================================================================
+    
+    # IMPORTANT: Detect architecture on ORIGINAL file first, before extraction
+    # This ensures we analyze the binary content, not extracted fragments
+    arch_detected = "Unknown"
+    arch_detection_details = None
+    try:
+        print(f"[DEBUG] Running architecture detection on: {file_path}")
+        arch_detection_details = detect_architecture_detailed(file_path)
+        if arch_detection_details:
+            m1 = arch_detection_details.get('method_1', {}).get('architecture')
+            m3 = arch_detection_details.get('method_3', {}).get('architecture')
+            final_arch = arch_detection_details.get('final', {}).get('architecture')
+            print(f"[DEBUG] Detection results: M1={m1}, M3={m3}, Final={final_arch}")
+        if arch_detection_details and arch_detection_details.get('final', {}).get('architecture') != 'Unknown':
+            final = arch_detection_details.get('final', {})
+            arch = final.get('architecture', 'Unknown')
+            if final.get('bits') == 64:
+                arch = f"{arch}/64-bit"
+            if final.get('endian') == 'BE':
+                arch = f"{arch}/BE"
+            arch_detected = arch
+            print(f"[DEBUG] arch_detected set to: {arch_detected}")
+    except Exception as e:
+        print(f"Architecture detection error: {e}")
     
     # Check if firmware needs extraction
     files_to_analyze = [file_path]
@@ -559,28 +625,14 @@ async def run_real_analysis(job_id, file_path, filename, size, file_hash):
     except Exception as e:
         results["extraction"] = {"error": str(e)}
     
-    # Analyze all files (original or extracted)
+    # Analyze all files (original or extracted) for CRYPTO detection only
+    # (Architecture detection was already done on the ORIGINAL file above)
     all_classifications = []
-    arch_detected = "Unknown"
-    arch_detection_details = None  # Store detailed architecture detection
     
     for fpath in files_to_analyze:
         try:
             crypto_detected, classifications = analyze_binary_heuristic(fpath)
             all_classifications.extend(classifications)
-            
-            # Try to detect architecture from extracted files using detailed method
-            if arch_detected == "Unknown":
-                arch_details = detect_architecture_detailed(fpath)
-                if arch_details and arch_details.get('final', {}).get('architecture') != 'Unknown':
-                    arch_detection_details = arch_details
-                    final = arch_details.get('final', {})
-                    arch = final.get('architecture', 'Unknown')
-                    if final.get('bits') == 64:
-                        arch = f"{arch}/64-bit"
-                    if final.get('endian') == 'BE':
-                        arch = f"{arch}/BE"
-                    arch_detected = arch
         except:
             continue
     
@@ -614,12 +666,22 @@ async def run_real_analysis(job_id, file_path, filename, size, file_hash):
                 "architecture": arch_detection_details['method_2'].get('architecture'),
                 "confidence": arch_detection_details['method_2'].get('confidence', 0)
             },
+            "method_3": {
+                "name": arch_detection_details['method_3'].get('name', 'String Search'),
+                "architecture": arch_detection_details['method_3'].get('architecture'),
+                "confidence": arch_detection_details['method_3'].get('confidence', 0),
+                "details": arch_detection_details['method_3'].get('details', {})
+            },
             "final": arch_detection_details.get('final', {})
         }
+        # Use final ensemble result as detected architecture
+        final_arch = arch_detection_details.get('final', {}).get('architecture')
+        arch_detected = final_arch or arch_detected
     else:
         results["architecture_detection"] = {
             "method_1": {"name": "Capstone Disassembly", "architecture": None, "confidence": 0},
             "method_2": {"name": "Header + Prologue", "architecture": None, "confidence": 0},
+            "method_3": {"name": "String Search", "architecture": None, "confidence": 0},
             "final": {"architecture": arch_detected, "confidence": 0, "method": "fallback"}
         }
     
@@ -1071,17 +1133,10 @@ def analyze_binary_heuristic(file_path):
         })
         crypto_found = True
     
-    # Kyber/Dilithium (Post-Quantum)
-    kyber_q = bytes([0x01, 0x0d])  # Q = 3329 in LE
-    if kyber_q in data:
-        classifications.append({
-            "name": "kyber_pqc",
-            "class_id": 9,
-            "class_name": "Post-Quantum",
-            "confidence": 0.60,
-            "indicator": "Kyber modulus detected"
-        })
-        crypto_found = True
+    # NOTE: Kyber/Dilithium (Post-Quantum) detection REMOVED
+    # The 2-byte modulus pattern (0x01 0x0d) produces too many false positives
+    # Post-quantum crypto is extremely rare in embedded firmware
+    # Only string-based detection should be used for PQC (see above)
     
     # If nothing found, mark as non-crypto
     if not classifications:
@@ -1139,14 +1194,15 @@ def detect_architecture(file_path):
 
 def detect_architecture_detailed(file_path):
     """
-    Detect binary architecture using 2 independent methods and return detailed results.
+    Detect binary architecture using 3 independent methods and return detailed results.
     
     Returns:
-        dict with 'method_1', 'method_2', and 'final' results
+        dict with 'method_1' (Capstone), 'method_2' (Header), 'method_3' (Strings), and 'final' results
     """
     results = {
         'method_1': {'name': 'Capstone Disassembly', 'architecture': None, 'confidence': 0.0, 'details': {}},
         'method_2': {'name': 'Header + Prologue', 'architecture': None, 'confidence': 0.0, 'details': {}},
+        'method_3': {'name': 'String Search', 'architecture': None, 'confidence': 0.0, 'details': {}},
         'final': {'architecture': 'Unknown', 'confidence': 0.0, 'bits': 32, 'endian': 'LE', 'method': 'none'}
     }
     
@@ -1238,6 +1294,30 @@ def detect_architecture_detailed(file_path):
             results['method_2']['details'] = {'source': 'none', 'reason': 'No headers or prologues found'}
     except Exception as e:
         results['method_2']['error'] = str(e)
+    
+    # ================================================================
+    # METHOD 3: String-based detection (embedded paths, build info)
+    # ================================================================
+    try:
+        from arch_detection.string_detector import StringDetector
+        string_detector = StringDetector()
+        string_results = string_detector.detect(data)
+        
+        if string_results:
+            best = string_results[0]
+            results['method_3'] = {
+                'name': 'String Search',
+                'architecture': best.architecture,
+                'confidence': round(best.confidence * 100, 1),
+                'bits': best.bits,
+                'endian': best.endian,
+                'details': {
+                    'string_matches': best.details.get('string_matches', 0),
+                    'context': best.details.get('context', '')[:100]  # Truncate for API
+                }
+            }
+    except Exception as e:
+        results['method_3']['error'] = str(e)
     
     # ================================================================
     # FINAL: Ensemble consensus 
@@ -1554,6 +1634,10 @@ async def get_detailed_report(job_id: str):
     try:
         from detailed_analysis import run_detailed_analysis
         detailed_report = run_detailed_analysis(file_path)
+        
+        # Convert dataclass to dict for JSON serialization
+        if hasattr(detailed_report, 'to_dict'):
+            detailed_report = detailed_report.to_dict()
         
         return {
             "job_id": job_id,

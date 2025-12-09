@@ -564,6 +564,18 @@ ARCHITECTURE_INFO = {
         "instruction_set": "MIPS32",
         "common_prologue": "ADDIU SP, SP, -0x20",
         "ghidra": "MIPS:LE:32:default"
+    },
+    "RISCV32": {
+        "full_name": "RISC-V 32-bit",
+        "instruction_set": "RV32I/M/A/F/D",
+        "common_prologue": "ADDI SP, SP, -N",
+        "ghidra": "RISCV:LE:32:default"
+    },
+    "RISCV64": {
+        "full_name": "RISC-V 64-bit",
+        "instruction_set": "RV64I/M/A/F/D", 
+        "common_prologue": "ADDI SP, SP, -N",
+        "ghidra": "RISCV:LE:64:default"
     }
 }
 
@@ -573,10 +585,23 @@ def create_architecture_detail(arch_result: Dict) -> ArchitectureDetail:
     final = arch_result.get("final", {})
     method1 = arch_result.get("method_1", {})
     method2 = arch_result.get("method_2", {})
+    method3 = arch_result.get("method_3", {})
     
     arch = final.get("architecture", "Unknown")
     arch_info = ARCHITECTURE_INFO.get(arch, {})
     
+    # Determine primary method based on highest confidence
+    m1_conf = method1.get("confidence", 0)
+    m2_conf = method2.get("confidence", 0)
+    m3_conf = method3.get("confidence", 0)
+    
+    if m3_conf >= m1_conf and m3_conf >= m2_conf:
+        primary = method3.get("name", "String Detection")
+    elif m1_conf >= m2_conf:
+        primary = method1.get("method", "Capstone")
+    else:
+        primary = method2.get("method", "Header")
+
     return ArchitectureDetail(
         architecture=arch,
         full_name=arch_info.get("full_name", arch),
@@ -585,7 +610,7 @@ def create_architecture_detail(arch_result: Dict) -> ArchitectureDetail:
         bits=final.get("bits", 32),
         endianness="Little Endian" if final.get("endian", "LE") == "LE" else "Big Endian",
         instruction_set=arch_info.get("instruction_set", "Unknown"),
-        primary_method=method1.get("method", "Capstone") if method1.get("confidence", 0) > method2.get("confidence", 0) else method2.get("method", "Header"),
+        primary_method=primary,
         capstone_result={
             "architecture": method1.get("architecture"),
             "confidence": method1.get("confidence"),

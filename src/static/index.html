@@ -1,204 +1,556 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CryptoHunter - AI-Powered Crypto Detection</title>
     <meta name="description" content="AI-powered cryptographic primitive detection in firmware binaries">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { 
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; 
-            max-width: 1200px; margin: 0 auto; padding: 20px; 
-            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%); 
-            color: #eee; min-height: 100vh;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
-        h1 { color: #00d9ff; margin-bottom: 5px; font-size: 2.5rem; }
-        .subtitle { color: #888; margin-bottom: 30px; font-size: 1.1rem; }
-        
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #00d9ff;
+            margin-bottom: 5px;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
         /* Upload Box */
-        .upload-box { 
-            border: 2px dashed #00d9ff; padding: 50px; text-align: center; 
-            border-radius: 20px; margin: 20px 0; 
-            background: rgba(22, 33, 62, 0.8); transition: all 0.3s ease;
+        .upload-box {
+            border: 2px dashed #00d9ff;
+            padding: 50px;
+            text-align: center;
+            border-radius: 20px;
+            margin: 20px 0;
+            background: rgba(22, 33, 62, 0.8);
+            transition: all 0.3s ease;
             backdrop-filter: blur(10px);
         }
-        .upload-box:hover { border-color: #00ff88; background: rgba(26, 39, 68, 0.9); transform: translateY(-2px); }
-        .upload-box.dragover { border-color: #00ff88; background: rgba(26, 51, 68, 0.9); box-shadow: 0 0 30px rgba(0, 255, 136, 0.2); }
-        .upload-box h3 { color: #fff; margin-bottom: 10px; font-size: 1.5rem; }
-        input[type="file"] { font-size: 16px; color: #eee; margin: 15px 0; }
-        
-        /* Buttons */
-        .btn { 
-            background: linear-gradient(135deg, #00d9ff, #00ff88); 
-            color: #000; padding: 14px 35px; border: none; border-radius: 10px; 
-            cursor: pointer; font-size: 16px; font-weight: 600; 
-            transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px;
+
+        .upload-box:hover {
+            border-color: #00ff88;
+            background: rgba(26, 39, 68, 0.9);
+            transform: translateY(-2px);
         }
-        .btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(0, 217, 255, 0.4); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        .btn-small { padding: 8px 16px; font-size: 12px; margin-left: 10px; letter-spacing: 0.5px; }
-        .btn-detail { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
-        .btn-detail:hover { box-shadow: 0 5px 20px rgba(99, 102, 241, 0.4); }
-        
-        #status { color: #00ff88; font-size: 18px; margin-top: 20px; font-weight: 500; }
-        
+
+        .upload-box.dragover {
+            border-color: #00ff88;
+            background: rgba(26, 51, 68, 0.9);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
+        }
+
+        .upload-box h3 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+        }
+
+        input[type="file"] {
+            font-size: 16px;
+            color: #eee;
+            margin: 15px 0;
+        }
+
+        /* Buttons */
+        .btn {
+            background: linear-gradient(135deg, #00d9ff, #00ff88);
+            color: #000;
+            padding: 14px 35px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(0, 217, 255, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 12px;
+            margin-left: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-detail {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        }
+
+        .btn-detail:hover {
+            box-shadow: 0 5px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        #status {
+            color: #00ff88;
+            font-size: 18px;
+            margin-top: 20px;
+            font-weight: 500;
+        }
+
         /* Results Container */
-        .results-container { 
-            background: rgba(22, 33, 62, 0.9); 
-            border-radius: 20px; padding: 30px; margin-top: 25px;
+        .results-container {
+            background: rgba(22, 33, 62, 0.9);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 25px;
             backdrop-filter: blur(10px);
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
         }
-        .section { margin-bottom: 30px; }
-        .section h3 { 
-            color: #00d9ff; border-bottom: 1px solid rgba(255,255,255,0.1); 
-            padding-bottom: 12px; margin-bottom: 18px; 
-            display: flex; justify-content: space-between; align-items: center;
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h3 {
+            color: #00d9ff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 12px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-size: 1.3rem;
         }
-        
+
         /* Summary Grid */
-        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
-        .summary-card { 
-            background: linear-gradient(135deg, #0f3460, #16213e); 
-            padding: 25px; border-radius: 15px; text-align: center;
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #0f3460, #16213e);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
             transition: transform 0.3s ease;
             border: 1px solid rgba(0, 217, 255, 0.1);
         }
-        .summary-card:hover { transform: translateY(-5px); }
-        .summary-value { font-size: 2.5rem; font-weight: bold; color: #00d9ff; }
-        .summary-label { color: #888; font-size: 14px; margin-top: 8px; }
-        
-        /* Tabs */
-        .tabs { display: flex; gap: 12px; margin-bottom: 25px; flex-wrap: wrap; }
-        .tab { 
-            padding: 12px 24px; background: rgba(15, 52, 96, 0.8); 
-            border-radius: 10px; cursor: pointer; transition: all 0.3s ease;
-            border: 1px solid transparent; font-weight: 500;
+
+        .summary-card:hover {
+            transform: translateY(-5px);
         }
-        .tab:hover { background: rgba(26, 64, 112, 0.9); border-color: rgba(0, 217, 255, 0.3); }
-        .tab.active { 
-            background: linear-gradient(135deg, #00d9ff, #00ff88); 
-            color: #000; font-weight: 600;
+
+        .summary-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #00d9ff;
+        }
+
+        .summary-label {
+            color: #888;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: rgba(15, 52, 96, 0.8);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            font-weight: 500;
+        }
+
+        .tab:hover {
+            background: rgba(26, 64, 112, 0.9);
+            border-color: rgba(0, 217, 255, 0.3);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #00d9ff, #00ff88);
+            color: #000;
+            font-weight: 600;
             box-shadow: 0 5px 15px rgba(0, 217, 255, 0.3);
         }
-        .tab-content { display: none; animation: fadeIn 0.3s ease; }
-        .tab-content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
         /* Crypto Items */
-        .crypto-item { 
-            background: linear-gradient(135deg, rgba(15, 52, 96, 0.9), rgba(22, 33, 62, 0.9)); 
-            padding: 18px; border-radius: 12px; margin-bottom: 12px;
+        .crypto-item {
+            background: linear-gradient(135deg, rgba(15, 52, 96, 0.9), rgba(22, 33, 62, 0.9));
+            padding: 18px;
+            border-radius: 12px;
+            margin-bottom: 12px;
             border: 1px solid rgba(0, 217, 255, 0.1);
             transition: all 0.3s ease;
         }
-        .crypto-item:hover { border-color: rgba(0, 217, 255, 0.3); }
-        .crypto-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .crypto-name { font-weight: 600; color: #fff; font-size: 1.1rem; }
-        .crypto-type { color: #00d9ff; font-size: 13px; margin-top: 4px; }
-        .crypto-indicator { color: #888; font-size: 12px; margin-top: 4px; }
-        
-        /* Confidence Badge */
-        .confidence { 
-            background: linear-gradient(135deg, #00ff88, #00d9ff); 
-            color: #000; padding: 6px 14px; border-radius: 20px; 
-            font-weight: 600; font-size: 13px;
+
+        .crypto-item:hover {
+            border-color: rgba(0, 217, 255, 0.3);
         }
-        .confidence.low { background: linear-gradient(135deg, #ff6b6b, #ee5a5a); }
-        .confidence.medium { background: linear-gradient(135deg, #ffd93d, #ffcc00); }
-        
+
+        .crypto-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .crypto-name {
+            font-weight: 600;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .crypto-type {
+            color: #00d9ff;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .crypto-indicator {
+            color: #888;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        /* Confidence Badge */
+        .confidence {
+            background: linear-gradient(135deg, #00ff88, #00d9ff);
+            color: #000;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .confidence.low {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+        }
+
+        .confidence.medium {
+            background: linear-gradient(135deg, #ffd93d, #ffcc00);
+        }
+
         /* Detail Section (Collapsible) */
-        .detail-section { 
-            display: none; margin-top: 18px; padding: 18px; 
-            background: rgba(10, 22, 40, 0.9); border-radius: 10px; 
+        .detail-section {
+            display: none;
+            margin-top: 18px;
+            padding: 18px;
+            background: rgba(10, 22, 40, 0.9);
+            border-radius: 10px;
             border-left: 4px solid #00d9ff;
         }
-        .detail-section.expanded { display: block; animation: slideDown 0.3s ease; }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .detail-row { display: flex; margin-bottom: 10px; font-size: 13px; align-items: flex-start; }
-        .detail-label { color: #888; min-width: 150px; font-weight: 500; }
-        .detail-value { color: #eee; flex: 1; }
-        .detail-value.warning { color: #ff6b6b; font-weight: 600; }
-        .detail-value.safe { color: #00ff88; font-weight: 600; }
-        
-        /* Hex Context */
-        .hex-context { 
-            font-family: 'Fira Code', 'Courier New', monospace; 
-            background: rgba(5, 16, 28, 0.9); 
-            padding: 12px 16px; border-radius: 8px; font-size: 11px; 
-            overflow-x: auto; color: #00d9ff; margin-top: 8px;
+
+        .detail-section.expanded {
+            display: block;
+            animation: slideDown 0.3s ease;
         }
-        
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .detail-row {
+            display: flex;
+            margin-bottom: 10px;
+            font-size: 13px;
+            align-items: flex-start;
+        }
+
+        .detail-label {
+            color: #888;
+            min-width: 150px;
+            font-weight: 500;
+        }
+
+        .detail-value {
+            color: #eee;
+            flex: 1;
+        }
+
+        .detail-value.warning {
+            color: #ff6b6b;
+            font-weight: 600;
+        }
+
+        .detail-value.safe {
+            color: #00ff88;
+            font-weight: 600;
+        }
+
+        /* Hex Context */
+        .hex-context {
+            font-family: 'Fira Code', 'Courier New', monospace;
+            background: rgba(5, 16, 28, 0.9);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 11px;
+            overflow-x: auto;
+            color: #00d9ff;
+            margin-top: 8px;
+        }
+
         /* Entropy Bar */
-        .entropy-bar { height: 10px; background: rgba(26, 39, 68, 0.9); border-radius: 5px; overflow: hidden; margin-top: 6px; }
-        .entropy-fill { height: 100%; background: linear-gradient(90deg, #00ff88, #ffd93d, #ff6b6b); border-radius: 5px; transition: width 0.5s ease; }
-        
+        .entropy-bar {
+            height: 10px;
+            background: rgba(26, 39, 68, 0.9);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .entropy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #ffd93d, #ff6b6b);
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+
         /* Protocol Items */
-        .protocol-item { 
-            background: linear-gradient(135deg, rgba(26, 58, 92, 0.9), rgba(15, 39, 68, 0.9)); 
-            padding: 18px; border-radius: 12px; margin-bottom: 12px; cursor: pointer;
+        .protocol-item {
+            background: linear-gradient(135deg, rgba(26, 58, 92, 0.9), rgba(15, 39, 68, 0.9));
+            padding: 18px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
             border: 1px solid rgba(255, 217, 61, 0.1);
             transition: all 0.3s ease;
         }
-        .protocol-item:hover { border-color: rgba(255, 217, 61, 0.3); }
-        .protocol-header { display: flex; justify-content: space-between; align-items: center; }
-        .protocol-name { font-weight: 600; color: #ffd93d; font-size: 1.2rem; }
-        .protocol-desc { color: #aaa; font-size: 13px; margin-top: 4px; }
-        .protocol-detail { display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 217, 61, 0.2); }
-        .protocol-detail.expanded { display: block; }
-        .cipher-suite { 
-            background: rgba(15, 39, 68, 0.9); 
-            padding: 10px 14px; border-radius: 8px; margin-top: 10px; 
-            font-family: 'Fira Code', monospace; font-size: 12px; color: #00d9ff;
+
+        .protocol-item:hover {
+            border-color: rgba(255, 217, 61, 0.3);
         }
-        
+
+        .protocol-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .protocol-name {
+            font-weight: 600;
+            color: #ffd93d;
+            font-size: 1.2rem;
+        }
+
+        .protocol-desc {
+            color: #aaa;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .protocol-detail {
+            display: none;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 217, 61, 0.2);
+        }
+
+        .protocol-detail.expanded {
+            display: block;
+        }
+
+        .cipher-suite {
+            background: rgba(15, 39, 68, 0.9);
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-family: 'Fira Code', monospace;
+            font-size: 12px;
+            color: #00d9ff;
+        }
+
         /* Architecture */
-        .arch-detail { background: linear-gradient(135deg, rgba(15, 52, 96, 0.9), rgba(22, 33, 62, 0.9)); padding: 25px; border-radius: 15px; }
-        .arch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 18px; margin-top: 18px; }
-        .arch-card { background: rgba(26, 39, 68, 0.9); padding: 18px; border-radius: 10px; text-align: center; }
-        .arch-value { font-size: 1.3rem; font-weight: 600; color: #00d9ff; }
-        .arch-label { font-size: 12px; color: #888; margin-top: 6px; }
-        
+        .arch-detail {
+            background: linear-gradient(135deg, rgba(15, 52, 96, 0.9), rgba(22, 33, 62, 0.9));
+            padding: 25px;
+            border-radius: 15px;
+        }
+
+        .arch-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 18px;
+            margin-top: 18px;
+        }
+
+        .arch-card {
+            background: rgba(26, 39, 68, 0.9);
+            padding: 18px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .arch-value {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #00d9ff;
+        }
+
+        .arch-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 6px;
+        }
+
         /* Entropy Section */
-        .entropy-section { background: linear-gradient(135deg, rgba(15, 52, 96, 0.9), rgba(22, 33, 62, 0.9)); padding: 20px; border-radius: 15px; margin-top: 18px; }
-        .entropy-global { font-size: 2rem; color: #00d9ff; font-weight: 700; }
-        .high-entropy-regions { margin-top: 18px; }
-        .region-item { 
-            background: rgba(26, 39, 68, 0.9); 
-            padding: 12px 18px; border-radius: 8px; margin-bottom: 10px; 
-            display: flex; justify-content: space-between; font-size: 13px;
-            flex-wrap: wrap; gap: 10px;
+        .entropy-section {
+            background: linear-gradient(135deg, rgba(15, 52, 96, 0.9), rgba(22, 33, 62, 0.9));
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 18px;
         }
-        
-        .no-results { color: #888; text-align: center; padding: 50px; font-size: 1.1rem; }
-        pre { background: rgba(10, 10, 21, 0.9); padding: 18px; border-radius: 12px; overflow-x: auto; font-size: 12px; max-height: 350px; }
-        
-        .toggle-icon { font-size: 12px; margin-left: 10px; transition: transform 0.3s ease; display: inline-block; }
-        .toggle-icon.expanded { transform: rotate(180deg); }
-        
-        .loading-spinner { 
-            display: inline-block; width: 18px; height: 18px; 
-            border: 2px solid #00d9ff; border-top-color: transparent; 
-            border-radius: 50%; animation: spin 1s linear infinite; margin-left: 10px;
+
+        .entropy-global {
+            font-size: 2rem;
+            color: #00d9ff;
+            font-weight: 700;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
+
+        .high-entropy-regions {
+            margin-top: 18px;
+        }
+
+        .region-item {
+            background: rgba(26, 39, 68, 0.9);
+            padding: 12px 18px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .no-results {
+            color: #888;
+            text-align: center;
+            padding: 50px;
+            font-size: 1.1rem;
+        }
+
+        pre {
+            background: rgba(10, 10, 21, 0.9);
+            padding: 18px;
+            border-radius: 12px;
+            overflow-x: auto;
+            font-size: 12px;
+            max-height: 350px;
+        }
+
+        .toggle-icon {
+            font-size: 12px;
+            margin-left: 10px;
+            transition: transform 0.3s ease;
+            display: inline-block;
+        }
+
+        .toggle-icon.expanded {
+            transform: rotate(180deg);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #00d9ff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
-            h1 { font-size: 1.8rem; }
-            .summary-grid { grid-template-columns: repeat(2, 1fr); }
-            .tabs { flex-direction: column; }
-            .tab { text-align: center; }
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab {
+                text-align: center;
+            }
         }
     </style>
 </head>
+
 <body>
     <h1>🔐 CryptoHunter</h1>
     <p class="subtitle">AI-Powered Cryptographic Primitive Detection in Firmware</p>
-    
+
     <div class="upload-box" id="dropzone">
         <h3>📁 Upload Firmware</h3>
         <p style="color:#aaa;">Drag & drop a firmware file here, or click to select</p>
@@ -209,16 +561,16 @@
         </form>
         <p id="status"></p>
     </div>
-    
+
     <div id="results"></div>
-    
+
     <script>
         let currentJobId = null;
         let detailedReport = null;
-        
+
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('fileInput');
-        
+
         dropzone.ondragover = (e) => { e.preventDefault(); dropzone.classList.add('dragover'); };
         dropzone.ondragleave = () => dropzone.classList.remove('dragover');
         dropzone.ondrop = (e) => {
@@ -227,19 +579,19 @@
             fileInput.files = e.dataTransfer.files;
             document.getElementById('uploadForm').dispatchEvent(new Event('submit'));
         };
-        
+
         document.getElementById('uploadForm').onsubmit = async (e) => {
             e.preventDefault();
             const file = fileInput.files[0];
             if (!file) { alert('Please select a firmware file'); return; }
-            
+
             const formData = new FormData();
             formData.append('file', file);
-            
+
             document.getElementById('status').innerHTML = '<span class="loading-spinner"></span> Analyzing ' + file.name + '...';
             document.getElementById('submitBtn').disabled = true;
             detailedReport = null;
-            
+
             try {
                 const res = await fetch('/api/analyze', { method: 'POST', body: formData });
                 const data = await res.json();
@@ -251,7 +603,7 @@
             }
             document.getElementById('submitBtn').disabled = false;
         };
-        
+
         async function fetchDetailedReport() {
             if (!currentJobId) return null;
             try {
@@ -264,17 +616,22 @@
             } catch (err) { console.error('Error fetching detailed report:', err); }
             return null;
         }
-        
+
         function displayResults(data) {
             const cryptoCount = data.summary?.crypto_count || 0;
-            const arch = data.summary?.architecture || 'Unknown';
+            // Prioritize Final Ensemble Result (most accurate)
+            const arch = data.architecture_detection?.final?.architecture ||
+                data.architecture_detection?.method_3?.architecture ||
+                data.architecture_detection?.method_1?.architecture ||
+                data.summary?.architecture ||
+                'Unknown';
             const protocols = data.protocols || [];
             const classifications = data.classifications || [];
             const archDetection = data.architecture_detection || {};
             const securityLevel = data.summary?.security_level || 'N/A';
-            
+
             let html = '<div class="results-container">';
-            
+
             html += '<div class="tabs">';
             html += '<div class="tab active" onclick="showTab(\'overview\')">📊 Overview</div>';
             html += '<div class="tab" onclick="showTab(\'algorithms\')">🔐 Algorithms (' + classifications.length + ')</div>';
@@ -282,7 +639,7 @@
             html += '<div class="tab" onclick="showTab(\'architecture\')">🏗️ Architecture</div>';
             html += '<div class="tab" onclick="showTab(\'entropy\')">📈 Entropy</div>';
             html += '</div>';
-            
+
             // Overview Tab
             html += '<div id="tab-overview" class="tab-content active">';
             html += '<div class="section"><h3>📊 Analysis Summary</h3><div class="summary-grid">';
@@ -291,7 +648,7 @@
             html += '<div class="summary-card"><div class="summary-value">' + arch + '</div><div class="summary-label">Architecture</div></div>';
             html += '<div class="summary-card"><div class="summary-value">' + securityLevel + '</div><div class="summary-label">Security Level</div></div>';
             html += '</div></div>';
-            
+
             if (classifications.length > 0) {
                 html += '<div class="section"><h3>🔝 Top Detections</h3>';
                 classifications.slice(0, 5).forEach(c => {
@@ -304,7 +661,7 @@
                 html += '</div>';
             }
             html += '</div>';
-            
+
             // Algorithms Tab
             html += '<div id="tab-algorithms" class="tab-content"><div class="section"><h3>🔐 Detected Crypto <button class="btn btn-small btn-detail" onclick="loadDetailedAlgorithms()">📋 Load Details</button></h3><div id="algorithms-list">';
             if (classifications.length > 0) {
@@ -314,7 +671,7 @@
                 });
             } else html += '<div class="no-results">No crypto primitives detected.</div>';
             html += '</div></div></div>';
-            
+
             // Protocols Tab
             html += '<div id="tab-protocols" class="tab-content">';
             if (protocols.length > 0) {
@@ -325,38 +682,39 @@
                 html += '</div></div>';
             } else html += '<div class="no-results">No protocols detected.</div>';
             html += '</div>';
-            
+
             // Architecture Tab
             html += '<div id="tab-architecture" class="tab-content"><div class="section"><h3>🏗️ Architecture</h3><div class="arch-detail"><div style="font-size:2rem;color:#00d9ff;font-weight:700;">' + arch + '</div><div class="arch-grid">';
-            if (archDetection.method_1) html += '<div class="arch-card"><div class="arch-value">' + (archDetection.method_1.architecture || 'N/A') + '</div><div class="arch-label">Method 1: ' + (archDetection.method_1.name || 'Capstone') + '</div></div>';
-            if (archDetection.method_2) html += '<div class="arch-card"><div class="arch-value">' + (archDetection.method_2.architecture || 'N/A') + '</div><div class="arch-label">Method 2: ' + (archDetection.method_2.name || 'Header') + '</div></div>';
-            if (archDetection.final) html += '<div class="arch-card" style="border:2px solid #00ff88;"><div class="arch-value" style="color:#00ff88;">' + (archDetection.final.architecture || arch) + '</div><div class="arch-label">Final Decision</div></div>';
+            if (archDetection.method_1) html += '<div class="arch-card"><div class="arch-value">' + (archDetection.method_1.architecture || 'N/A') + '</div><div class="arch-label">Method 1: ' + (archDetection.method_1.name || 'Capstone') + ' (' + Math.round(archDetection.method_1.confidence || 0) + '%)</div></div>';
+            if (archDetection.method_2) html += '<div class="arch-card"><div class="arch-value">' + (archDetection.method_2.architecture || 'N/A') + '</div><div class="arch-label">Method 2: ' + (archDetection.method_2.name || 'Header') + ' (' + Math.round(archDetection.method_2.confidence || 0) + '%)</div></div>';
+            if (archDetection.method_3 && archDetection.method_3.architecture) html += '<div class="arch-card"><div class="arch-value">' + (archDetection.method_3.architecture || 'N/A') + '</div><div class="arch-label">Method 3: ' + (archDetection.method_3.name || 'String Search') + ' (' + Math.round(archDetection.method_3.confidence || 0) + '%)</div></div>';
+            if (archDetection.final) html += '<div class="arch-card" style="border:2px solid #00ff88;"><div class="arch-value" style="color:#00ff88;">' + (archDetection.final.architecture || arch) + '</div><div class="arch-label">Final Decision (' + Math.round(archDetection.final.confidence || 0) + '%)</div></div>';
             html += '</div><div id="arch-detailed" style="margin-top:25px;"></div><button class="btn btn-small btn-detail" onclick="loadDetailedArchitecture()" style="margin-top:18px;">📋 Load Details</button></div></div></div>';
-            
+
             // Entropy Tab
             html += '<div id="tab-entropy" class="tab-content"><div class="section"><h3>📈 Entropy</h3><div id="entropy-content"><p style="color:#888;margin-bottom:15px;">Entropy analysis identifies encrypted/compressed regions.</p><button class="btn btn-small btn-detail" onclick="loadEntropyAnalysis()">📊 Load Entropy</button></div></div></div>';
-            
+
             html += '</div>';
             document.getElementById('results').innerHTML = html;
         }
-        
+
         function showTab(tabName) {
             const tabs = ['overview', 'algorithms', 'protocols', 'architecture', 'entropy'];
             document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', tabs[i] === tabName));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.getElementById('tab-' + tabName).classList.add('active');
         }
-        
+
         function toggleAlgoDetail(idx) {
             document.getElementById('detail-' + idx).classList.toggle('expanded');
             document.getElementById('icon-' + idx).classList.toggle('expanded');
         }
-        
+
         function toggleProtocolDetail(idx) {
             document.getElementById('proto-detail-' + idx).classList.toggle('expanded');
             document.getElementById('proto-icon-' + idx).classList.toggle('expanded');
         }
-        
+
         async function loadDetailedAlgorithms() {
             const list = document.getElementById('algorithms-list');
             if (!detailedReport) {
@@ -376,7 +734,7 @@
                     if (a.key_sizes?.length) html += '<div class="detail-row"><span class="detail-label">Key Sizes:</span><span class="detail-value">' + a.key_sizes.join(', ') + ' bits</span></div>';
                     if (a.block_size) html += '<div class="detail-row"><span class="detail-label">Block Size:</span><span class="detail-value">' + a.block_size + ' bits</span></div>';
                     html += '<div class="detail-row"><span class="detail-label">Entropy:</span><span class="detail-value">' + a.local_entropy.toFixed(4) + ' (' + a.entropy_classification + ')</span></div>';
-                    html += '<div class="entropy-bar"><div class="entropy-fill" style="width:' + (a.local_entropy/8*100) + '%"></div></div>';
+                    html += '<div class="entropy-bar"><div class="entropy-fill" style="width:' + (a.local_entropy / 8 * 100) + '%"></div></div>';
                     if (a.security_notes) html += '<div class="detail-row" style="margin-top:12px;"><span class="detail-label">Security:</span><span class="detail-value ' + secClass + '">' + a.security_notes + '</span></div>';
                     html += '<div class="detail-row" style="margin-top:12px;"><span class="detail-label">Hex:</span></div><div class="hex-context">' + a.context_bytes_hex + '</div>';
                     html += '</div></div>';
@@ -384,7 +742,7 @@
                 list.innerHTML = html || '<div class="no-results">No detailed data</div>';
             }
         }
-        
+
         async function loadDetailedProtocols() {
             const list = document.getElementById('protocols-list');
             if (!detailedReport) { list.innerHTML = '<div style="text-align:center;padding:20px;"><span class="loading-spinner"></span> Loading...</div>'; detailedReport = await fetchDetailedReport(); }
@@ -404,7 +762,7 @@
                 list.innerHTML = html || '<div class="no-results">No detailed data</div>';
             }
         }
-        
+
         async function loadDetailedArchitecture() {
             const container = document.getElementById('arch-detailed');
             if (!detailedReport) { container.innerHTML = '<span class="loading-spinner"></span> Loading...'; detailedReport = await fetchDetailedReport(); }
@@ -421,7 +779,7 @@
                 container.innerHTML = html;
             }
         }
-        
+
         async function loadEntropyAnalysis() {
             const container = document.getElementById('entropy-content');
             if (!detailedReport) { container.innerHTML = '<div style="text-align:center;padding:20px;"><span class="loading-spinner"></span> Loading...</div>'; detailedReport = await fetchDetailedReport(); }
@@ -430,10 +788,10 @@
                 let html = '<div class="entropy-section">';
                 html += '<div class="entropy-global">' + e.global_entropy.toFixed(4) + '</div>';
                 html += '<div style="color:#888;margin-top:5px;">Global Entropy (' + e.classification + ')</div>';
-                html += '<div class="entropy-bar" style="height:14px;margin-top:12px;"><div class="entropy-fill" style="width:' + (e.global_entropy/8*100) + '%"></div></div>';
+                html += '<div class="entropy-bar" style="height:14px;margin-top:12px;"><div class="entropy-fill" style="width:' + (e.global_entropy / 8 * 100) + '%"></div></div>';
                 if (e.high_entropy_regions?.length) {
                     html += '<div class="high-entropy-regions"><h4 style="color:#ff6b6b;margin:20px 0 12px;">⚠️ High Entropy Regions</h4>';
-                    e.high_entropy_regions.slice(0,10).forEach(r => {
+                    e.high_entropy_regions.slice(0, 10).forEach(r => {
                         html += '<div class="region-item"><span>Offset: ' + r.offset_hex + '</span><span>Size: ' + r.size + 'B</span><span>Entropy: ' + r.entropy.toFixed(2) + '</span><span style="color:#ff6b6b;">' + r.classification + '</span></div>';
                     });
                     if (e.high_entropy_regions.length > 10) html += '<p style="color:#888;text-align:center;margin-top:15px;">+ ' + (e.high_entropy_regions.length - 10) + ' more</p>';
@@ -445,4 +803,5 @@
         }
     </script>
 </body>
+
 </html>

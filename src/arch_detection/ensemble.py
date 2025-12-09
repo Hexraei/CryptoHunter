@@ -27,37 +27,44 @@ class EnsembleDetector:
             self.detectors = self._create_default_detectors()
     
     def _create_default_detectors(self) -> List[BaseDetector]:
-        """Create default set of detectors (Capstone + Header + Prologue only)."""
+        """Create default set of detectors with proper weights."""
         detectors = []
         
-        # Header detector - highest weight (authoritative when present)
+        # String detector - HIGHEST weight (embedded strings are very reliable)
         try:
-            from .header_detector import HeaderDetector
-            detector = HeaderDetector()
-            detector.weight = 3.0  # Very high - ELF/PE headers are definitive
+            from .string_detector import StringDetector
+            detector = StringDetector()
+            detector.weight = 3.0  # Highest - string evidence like 'riscv64' is definitive
             detectors.append(detector)
         except ImportError:
             pass
         
-        # Capstone detector - high weight (reliable disassembly analysis)
+        # Capstone detector - high weight (strict disassembly validation)
         try:
             from .capstone_detector import CapstoneDetector
             detector = CapstoneDetector()
-            detector.weight = 2.0  # High - strict disassembly is reliable
+            detector.weight = 2.5  # High - actual opcode validation
             detectors.append(detector)
         except ImportError:
             pass
         
-        # Prologue detector - medium weight (supporting evidence)
+        # Header detector - medium weight (can be misleading for raw binaries)
+        try:
+            from .header_detector import HeaderDetector
+            detector = HeaderDetector()
+            detector.weight = 2.0  # Medium - headers can be truncated/wrong
+            detectors.append(detector)
+        except ImportError:
+            pass
+        
+        # Prologue detector - low weight (supporting evidence only)
         try:
             from .prologue_detector import PrologueDetector
             detector = PrologueDetector()
-            detector.weight = 1.0  # Medium - function patterns are helpful
+            detector.weight = 1.0  # Low - function patterns are ambiguous
             detectors.append(detector)
         except ImportError:
             pass
-        
-        # Note: ML n-gram detector removed - Capstone is more reliable
         
         return detectors
     
