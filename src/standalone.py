@@ -47,6 +47,7 @@ manager = ConnectionManager()
 # Paths
 BASE_DIR = Path(__file__).parent
 FRONTEND_DIR = BASE_DIR / "frontend" / "dist"
+STATIC_DIR = BASE_DIR / "static"
 UPLOAD_DIR = BASE_DIR / "uploads"
 RESULTS_DIR = BASE_DIR / "results"
 
@@ -78,10 +79,17 @@ if (FRONTEND_DIR / "assets").exists():
 @app.get("/")
 async def root():
     """Serve frontend or API info."""
+    # Try built frontend first
     index_path = FRONTEND_DIR / "index.html"
     if index_path.exists():
         return FileResponse(index_path)
     
+    # Try static directory second (enhanced detailed reports UI)
+    static_index = STATIC_DIR / "index.html"
+    if static_index.exists():
+        return FileResponse(static_index)
+    
+    # Fallback to inline HTML
     return HTMLResponse("""
     <!DOCTYPE html>
     <html>
@@ -274,6 +282,7 @@ async def run_real_analysis(job_id, file_path, filename, size, file_hash):
         "job_id": job_id,
         "status": "completed",
         "filename": filename,
+        "file_path": file_path,  # Save for detailed report lookup
         "size": size,
         "sha256": file_hash,
         "timestamp": datetime.utcnow().isoformat(),
@@ -1510,6 +1519,64 @@ async def get_results(job_id: str):
     
     with open(result_path) as f:
         return json.load(f)
+
+
+@app.get("/api/detailed-report/{job_id}")
+async def get_detailed_report(job_id: str):
+    """
+    Get comprehensive detailed report for a completed analysis.
+    Includes algorithm metadata, protocol analysis, and architecture details.
+    """
+    result_path = RESULTS_DIR / f"{job_id}.json"
+    if not result_path.exists():
+        raise HTTPException(404, "Results not found - analysis may still be in progress")
+    
+    # Load basic results to get file path
+    with open(result_path) as f:
+        basic_results = json.load(f)
+    
+    # Check if we have the file path
+    file_path = basic_results.get("file_path")
+    if not file_path or not Path(file_path).exists():
+        # Try the upload directory
+        uploaded_file = UPLOAD_DIR / f"{job_id}_{basic_results.get('filename', 'unknown')}"
+        if not uploaded_file.exists():
+            # Return basic results with a note
+            return {
+                "job_id": job_id,
+                "status": "detailed_unavailable",
+                "message": "Original binary file not found - returning basic results",
+                "basic_results": basic_results
+            }
+        file_path = str(uploaded_file)
+    
+    # Import and run detailed analysis
+    try:
+        from detailed_analysis import run_detailed_analysis
+        detailed_report = run_detailed_analysis(file_path)
+        
+        return {
+            "job_id": job_id,
+            "filename": basic_results.get("filename"),
+            "status": "detailed_complete",
+            "basic_results": basic_results,
+            "detailed_report": detailed_report
+        }
+    except ImportError:
+        # Fallback if detailed_analysis module not available
+        return {
+            "job_id": job_id,
+            "status": "detailed_unavailable",
+            "message": "Detailed analysis module not available",
+            "basic_results": basic_results
+        }
+    except Exception as e:
+        return {
+            "job_id": job_id,
+            "status": "detailed_error",
+            "message": f"Error generating detailed report: {str(e)}",
+            "basic_results": basic_results
+        }
 
 
 @app.get("/api/export/{job_id}/json")
