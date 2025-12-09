@@ -3,6 +3,24 @@
 **AI/ML-Powered Cryptographic Primitive Detection in Binary Firmware**
 
 ---
+## Installation and Running
+
+### Option 1: Docker (Recommended)
+
+```bash
+# Clone the repository
+git clone https://github.com/your-org/CryptoHunter.git
+cd CryptoHunter
+
+# Build and start all services
+docker-compose up --build
+
+# Access points:
+# - Web UI:      http://localhost:8000
+# - API Docs:    http://localhost:8000/docs
+# - RabbitMQ:    http://localhost:15672 (guest/guest)
+# - Flower:      http://localhost:5555
+```
 
 ## Table of Contents
 
