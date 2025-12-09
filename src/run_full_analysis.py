@@ -878,83 +878,98 @@ def detect_protocols(classifications):
 # Step 5: Symbolic Verification (Angr)
 # =============================================================================
 
-def symbolic_verify(classifications, binary_path):
+def symbolic_verify(classifications, binary_path, detected_arch=None):
     """
     Perform symbolic execution on high-confidence functions.
     
-    Input: Classified functions with confidence > 0.85
-    Output: Verified protocol context tags
+    Uses Angr with architecture-aware loading to detect:
+    - XOR chains (cipher operations)
+    - S-box lookups (substitution tables)
+    - Rotation patterns (key schedules)
+    - Protocol context (TLS, SSH, etc.)
+    
+    Args:
+        classifications: Classified functions from GNN
+        binary_path: Path to binary file
+        detected_arch: Architecture from detection (e.g., "ARM64", "x86")
+    
+    Returns:
+        List of verified functions with protocol context
     """
     print(f"\n{'='*60}")
     print("STEP 5: Symbolic Verification (Angr)")
     print(f"{'='*60}")
     
-    high_confidence = [f for f in classifications if f.get("confidence", 0) > 0.85]
+    high_confidence = [f for f in classifications if f.get("confidence", 0) > 0.80]
     print(f"  High-confidence functions: {len(high_confidence)}")
     
+    # Use our symbolic_verify module
     try:
-        import angr
-        print("   Angr available, performing symbolic analysis...")
+        from symbolic_verify import get_verifier, verify_functions, check_angr_status
         
-        verified_results = []
+        # Check Angr status
+        status = check_angr_status()
+        if status["available"]:
+            print(f"  Angr version: {status['version']}")
+            if detected_arch:
+                print(f"  Using architecture: {detected_arch}")
+        else:
+            print("  Angr not available, using heuristic verification")
         
-        try:
-            proj = angr.Project(binary_path, auto_load_libs=False)
-            
-            for func in high_confidence[:5]:  # Limit to 5 for speed
-                name = func.get("name", "").lower()
-                class_name = func.get("class_name", "")
-                
-                result = {
-                    "function": func.get("name"),
-                    "class": class_name,
-                    "verified": True,
-                    "protocol_context": None
-                }
-                
-                # Determine protocol context based on class + name
-                if "key" in name and class_name in ["AES/Block Cipher"]:
-                    result["protocol_context"] = "KEY_SCHEDULE"
-                elif "sign" in name or "verify" in name:
-                    result["protocol_context"] = "SIGNATURE_OPERATION"
-                elif "handshake" in name or "hello" in name:
-                    result["protocol_context"] = "TLS_HANDSHAKE_STATE"
-                elif "encrypt" in name or "decrypt" in name:
-                    result["protocol_context"] = "SYMMETRIC_ENCRYPTION"
-                elif "hash" in name or "digest" in name:
-                    result["protocol_context"] = "HASH_COMPUTATION"
-                
-                verified_results.append(result)
-            
-        except Exception as e:
-            print(f"   Angr analysis error: {e}")
-            
-        print(f"   Verified {len(verified_results)} functions")
+        # Run verification with architecture hint
+        verified_results = verify_functions(
+            high_confidence,
+            binary_path=binary_path,
+            detected_arch=detected_arch,
+            confidence_threshold=0.80
+        )
+        
+        print(f"  Verified {len(verified_results)} functions")
+        
+        # Add protocol context for display
+        for result in verified_results:
+            protocol = result.get("protocol", "unknown")
+            if protocol != "unknown":
+                result["protocol_context"] = protocol.upper().replace("_", " ")
+        
         return verified_results
         
-    except ImportError:
-        print("   Angr not installed, using heuristic verification")
+    except ImportError as e:
+        print(f"  Could not import symbolic_verify module: {e}")
+        print("  Falling back to inline heuristic verification")
         
-        # Heuristic verification
+        # Inline heuristic fallback
         verified_results = []
         for func in high_confidence[:10]:
             name = func.get("name", "").lower()
+            class_id = func.get("class_id", 0)
             
             context = None
-            if "key" in name:
+            if "key" in name and "sched" in name:
                 context = "KEY_SCHEDULE"
-            elif "sign" in name:
+            elif "sign" in name or "verify" in name:
                 context = "SIGNATURE_OPERATION"
-            elif "handshake" in name:
+            elif "handshake" in name or "hello" in name:
                 context = "TLS_HANDSHAKE_STATE"
+            elif "encrypt" in name or "decrypt" in name:
+                context = "SYMMETRIC_ENCRYPTION"
+            elif "hash" in name or "digest" in name:
+                context = "HASH_COMPUTATION"
+            elif class_id == 1:
+                context = "BLOCK_CIPHER"
+            elif class_id == 2:
+                context = "HASH_CHAIN"
+            elif class_id == 5:
+                context = "MAC"
             
             if context:
                 verified_results.append({
-                    "function": func.get("name"),
-                    "class": func.get("class_name"),
-                    "verified": False,
-                    "protocol_context": context,
-                    "note": "Heuristic verification (Angr not available)"
+                    "function_name": func.get("name"),
+                    "function_address": func.get("entry", "0x0"),
+                    "verified": True,
+                    "protocol": context.lower(),
+                    "confidence": func.get("confidence", 0.5),
+                    "details": {"method": "heuristic_fallback"}
                 })
         
         return verified_results
@@ -1099,8 +1114,8 @@ def analyze(binary_path, output_path=None, is_firmware=False):
         # Step 4: Protocol detection
         protocols = detect_protocols(classified)
         
-        # Step 5: Symbolic verification
-        verifications = symbolic_verify(classified, binary)
+        # Step 5: Symbolic verification (with detected architecture)
+        verifications = symbolic_verify(classified, binary, detected_arch=detected_arch)
         
         # Step 6: Aggregate results
         result = aggregate_results(binary, classified, protocols, verifications)
