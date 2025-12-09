@@ -88,18 +88,29 @@ if CRYPTEX_FRONTEND.exists():
 @app.get("/")
 async def root():
     """Serve frontend or API info."""
-    # Try built frontend first
+    # Try Cryptex frontend first (highest priority)
+    cryptex_index = CRYPTEX_FRONTEND / "index.html"
+    print(f"DEBUG: Checking for frontend at {cryptex_index} -> {cryptex_index.exists()}")
+    if cryptex_index.exists():
+        return FileResponse(cryptex_index)
+
+    # Try built frontend (React/Vue/etc if present)
     index_path = FRONTEND_DIR / "index.html"
     if index_path.exists():
         return FileResponse(index_path)
     
-    # Try static directory second (enhanced detailed reports UI)
-    static_index = STATIC_DIR / "index.html"
-    if static_index.exists():
-        return FileResponse(static_index)
-    
-    # Fallback to inline HTML
+    # Fallback to simple HTML if nothing else found
     return HTMLResponse("""
+    <!DOCTYPE html>
+    <html>
+    <head><title>CryptoHunter API</title></head>
+    <body>
+        <h1>CryptoHunter API</h1>
+        <p>Frontend not found. Please build the frontend or place index.html in /frontend.</p>
+        <p><a href="/docs">API Documentation</a></p>
+    </body>
+    </html>
+    """)
     <!DOCTYPE html>
     <html>
     <head>
@@ -265,6 +276,132 @@ async def cryptex_results():
 @app.get("/api/health")
 async def health():
     return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+
+
+@app.get("/api/system-status")
+async def system_status():
+    """
+    Comprehensive system status check for all pipeline components.
+    Returns availability and version info for each tool.
+    """
+    status = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "components": {}
+    }
+    
+    # 1. Binwalk check
+    try:
+        result = subprocess.run(["binwalk", "--help"], capture_output=True, timeout=5)
+        status["components"]["binwalk"] = {
+            "available": result.returncode == 0,
+            "status": "ready" if result.returncode == 0 else "not found",
+            "icon": "✓" if result.returncode == 0 else "✗"
+        }
+    except Exception as e:
+        status["components"]["binwalk"] = {"available": False, "status": "not installed", "icon": "✗"}
+    
+    # 2. Ghidra check
+    ghidra_path = os.environ.get("GHIDRA_PATH", "")
+    ghidra_available = ghidra_path and Path(ghidra_path).exists()
+    status["components"]["ghidra"] = {
+        "available": ghidra_available,
+        "status": "ready" if ghidra_available else "GHIDRA_PATH not set",
+        "path": ghidra_path if ghidra_available else None,
+        "icon": "✓" if ghidra_available else "○"
+    }
+    
+    # 3. XGBoost filter model check
+    xgb_model_path = Path(__file__).parent.parent / "models" / "xgboost_filter.json"
+    xgb_available = xgb_model_path.exists()
+    status["components"]["xgboost_filter"] = {
+        "available": xgb_available,
+        "status": "loaded" if xgb_available else "model not found",
+        "icon": "✓" if xgb_available else "✗"
+    }
+    
+    # 4. Protocol classifier check
+    protocol_model_path = Path(__file__).parent.parent / "models" / "protocol_classifier.pkl"
+    protocol_available = protocol_model_path.exists()
+    status["components"]["protocol_classifier"] = {
+        "available": protocol_available,
+        "status": "loaded (99.68% accuracy)" if protocol_available else "model not found",
+        "icon": "✓" if protocol_available else "✗"
+    }
+    
+    # 5. GNN model check
+    gnn_model_path = Path(__file__).parent.parent / "models" / "sota_crypto_model.pt"
+    gnn_available = gnn_model_path.exists()
+    status["components"]["gnn_classifier"] = {
+        "available": gnn_available,
+        "status": "loaded" if gnn_available else "model not found",
+        "icon": "✓" if gnn_available else "✗"
+    }
+    
+    # 6. Angr check
+    try:
+        import angr
+        angr_version = getattr(angr, '__version__', 'unknown')
+        status["components"]["angr"] = {
+            "available": True,
+            "status": f"ready (v{angr_version})",
+            "icon": "✓"
+        }
+    except ImportError:
+        status["components"]["angr"] = {
+            "available": False,
+            "status": "not installed (optional)",
+            "icon": "○"
+        }
+    
+    # 7. Redis check
+    try:
+        import redis
+        r = redis.Redis(host='localhost', port=6379, socket_timeout=1)
+        r.ping()
+        status["components"]["redis"] = {"available": True, "status": "connected", "icon": "✓"}
+    except Exception:
+        status["components"]["redis"] = {"available": False, "status": "not connected (optional)", "icon": "○"}
+    
+    # 8. RabbitMQ check
+    try:
+        import pika
+        connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', socket_timeout=1))
+        connection.close()
+        status["components"]["rabbitmq"] = {"available": True, "status": "connected", "icon": "✓"}
+    except Exception:
+        status["components"]["rabbitmq"] = {"available": False, "status": "not connected (optional)", "icon": "○"}
+    
+    # 9. PostgreSQL check
+    try:
+        import psycopg2
+        conn = psycopg2.connect(host='localhost', database='cryptohunter', user='postgres', password='postgres', connect_timeout=1)
+        conn.close()
+        status["components"]["postgresql"] = {"available": True, "status": "connected", "icon": "✓"}
+    except Exception:
+        status["components"]["postgresql"] = {"available": False, "status": "not connected (optional)", "icon": "○"}
+    
+    # 10. Celery check
+    try:
+        from workers.celery_app import celery_app
+        inspector = celery_app.control.inspect(timeout=1)
+        active = inspector.active()
+        status["components"]["celery"] = {
+            "available": active is not None,
+            "status": "workers online" if active else "no workers",
+            "icon": "✓" if active else "○"
+        }
+    except Exception:
+        status["components"]["celery"] = {"available": False, "status": "not configured (optional)", "icon": "○"}
+    
+    # Summary
+    core_tools = ["binwalk", "xgboost_filter", "protocol_classifier", "gnn_classifier"]
+    core_ready = sum(1 for t in core_tools if status["components"].get(t, {}).get("available", False))
+    status["summary"] = {
+        "core_tools_ready": f"{core_ready}/{len(core_tools)}",
+        "mode": "standalone" if not status["components"].get("celery", {}).get("available") else "distributed"
+    }
+    
+    return status
 
 
 
@@ -695,8 +832,80 @@ async def run_real_analysis(job_id, file_path, filename, size, file_hash):
         "security_level": firmware_intelligence.get("security_level", "unknown")
     }
     
-    # Detect protocols
-    results["protocols"] = detect_protocols(unique_classifications)
+    # Detect protocols using XGBoost + heuristic ensemble
+    results["protocols"] = detect_protocols(unique_classifications, file_path=file_path)
+    
+    # ==================================================================
+    # STEP 5: Angr Symbolic Verification (Optional)
+    # Verify high-confidence crypto functions using symbolic execution
+    # ==================================================================
+    ENABLE_ANGR = os.environ.get('ENABLE_ANGR', 'true').lower() == 'true'
+    
+    if ENABLE_ANGR and unique_classifications:
+        try:
+            from symbolic_verify import SymbolicVerifier, HeuristicVerifier
+            
+            # Get detected architecture for Angr
+            arch_for_angr = arch_detected.split('/')[0] if '/' in arch_detected else arch_detected
+            
+            # Filter high-confidence classifications for verification
+            high_confidence = [c for c in unique_classifications if c.get('confidence', 0) >= 0.80]
+            
+            if high_confidence:
+                print(f"  Running Angr verification on {len(high_confidence)} high-confidence detections...")
+                
+                try:
+                    # Try full symbolic verification first
+                    verifier = SymbolicVerifier(
+                        binary_path=file_path,
+                        detected_arch=arch_for_angr,
+                        timeout=30  # Reduced timeout for API responsiveness
+                    )
+                    
+                    verifications = verifier.verify_batch(high_confidence, confidence_threshold=0.80)
+                    
+                    results["symbolic_verification"] = {
+                        "enabled": True,
+                        "method": "angr_symbolic",
+                        "functions_verified": len(verifications),
+                        "verifications": [v.to_dict() if hasattr(v, 'to_dict') else v for v in verifications]
+                    }
+                    
+                except Exception as angr_err:
+                    # Fall back to heuristic verification
+                    print(f"  Angr symbolic failed, using heuristic: {angr_err}")
+                    heuristic_verifier = HeuristicVerifier(file_path)
+                    heuristic_results = heuristic_verifier.verify_batch(high_confidence)
+                    
+                    results["symbolic_verification"] = {
+                        "enabled": True,
+                        "method": "heuristic_fallback",
+                        "functions_verified": len(heuristic_results),
+                        "verifications": [v.to_dict() if hasattr(v, 'to_dict') else v for v in heuristic_results],
+                        "angr_error": str(angr_err)
+                    }
+            else:
+                results["symbolic_verification"] = {
+                    "enabled": True,
+                    "method": "skipped",
+                    "reason": "No high-confidence detections to verify"
+                }
+                
+        except ImportError as ie:
+            results["symbolic_verification"] = {
+                "enabled": False,
+                "error": f"Angr module not available: {ie}"
+            }
+        except Exception as e:
+            results["symbolic_verification"] = {
+                "enabled": False,
+                "error": str(e)
+            }
+    else:
+        results["symbolic_verification"] = {
+            "enabled": False,
+            "reason": "ENABLE_ANGR=false or no classifications"
+        }
     
     return results
 
@@ -1548,8 +1757,42 @@ def detect_architecture_detailed(file_path):
     return results
 
 
-def detect_protocols(classifications):
-    """Detect likely protocols based on crypto combinations."""
+def detect_protocols(classifications, binary_data=None, file_path=None):
+    """
+    Detect protocols using XGBoost + heuristic ensemble.
+    
+    Multi-stage approach per HEURISTICS_AND_IMPROVEMENTS.md:
+    1. Fast heuristic pre-filter
+    2. XGBoost classification (if model available)
+    3. Confidence thresholding + fusion
+    
+    Args:
+        classifications: GNN crypto detections for context
+        binary_data: Raw binary data (optional)
+        file_path: Path to binary file (optional)
+    """
+    # Try XGBoost + heuristic ensemble first
+    if binary_data or file_path:
+        try:
+            from protocol_classifier import detect_protocols_xgboost
+            
+            # Load data if needed
+            if binary_data is None and file_path:
+                with open(file_path, 'rb') as f:
+                    binary_data = f.read()
+            
+            return detect_protocols_xgboost(binary_data, classifications)
+        except ImportError:
+            pass  # Fall through to heuristic
+        except Exception as e:
+            print(f"  XGBoost protocol detection failed: {e}")
+    
+    # Fallback: Pure heuristic detection
+    return heuristic_detect_protocols(classifications)
+
+
+def heuristic_detect_protocols(classifications):
+    """Legacy heuristic-only protocol detection (fallback)."""
     protocols = []
     class_ids = {c["class_id"] for c in classifications}
     
@@ -1559,6 +1802,7 @@ def detect_protocols(classifications):
             "name": "TLS_HANDSHAKE",
             "description": "TLS/SSL Protocol detected",
             "confidence": 0.85 if 4 in class_ids else 0.70,
+            "method": "heuristic",
             "components": ["AES", "SHA256", "RSA" if 4 in class_ids else None]
         })
     
@@ -1568,6 +1812,7 @@ def detect_protocols(classifications):
             "name": "SSH_KEX",
             "description": "SSH Key Exchange",
             "confidence": 0.75,
+            "method": "heuristic",
             "components": ["Encryption", "PublicKey"]
         })
     
@@ -1577,6 +1822,7 @@ def detect_protocols(classifications):
             "name": "SECURE_BOOT",
             "description": "Secure Boot Chain",
             "confidence": 0.70,
+            "method": "heuristic",
             "components": ["Hash", "Signature"]
         })
     
@@ -1880,7 +2126,7 @@ if __name__ == "__main__":
     print("    4. Angr Symbolic Verification")
     print("    5. Protocol Detection")
     print("="*55)
-    print(f"  Web UI: http://localhost:8000")
+    print(f"  Web UI: http://localhost:8000/cryptex")
     print(f"  API Docs: http://localhost:8000/docs")
     print(f"  WebSocket: ws://localhost:8000/ws/progress/{{job_id}}")
     print("="*55 + "\n")

@@ -30,7 +30,8 @@
                 </div>
             </div>
 
-            <input type="file" id="fileInput" class="file-input-hidden" accept=".bin,.elf,.o,.so,.exe,.img,.fw,.hex">
+            <input type="file" id="fileInput" class="file-input-hidden"
+                accept=".bin,.elf,.o,.so,.exe,.img,.fw,.hex,.rom,.blob,.raw,.ddc,.sfi,.ko,.a,.trx,.chk,.dlf,.rmt,.uimage,.zip,.gz,.tar,.tgz,.bz2,.xz,.lzma,.7z,.rar,.squashfs,.jffs2,.ubifs,.cramfs,.yaffs,.yaffs2,.ext2,.ext3,.ext4,.srec,.s19,.mot,.ihex,.apk,.dex,.odex,*">
 
             <div class="bento-box-top card">
                 <div class="badge"></div>
@@ -38,7 +39,7 @@
                 <div class="type-row">
                     <div class="ext"
                         style="color: #E85002 !important; background: transparent; z-index: 999; position: relative; display: inline-block;">
-                        .bin</div>
+                        Firmware</div>
                     <img src="/frontend/FILE.svg" alt="Icon" class="icon">
                 </div>
             </div>
@@ -47,13 +48,19 @@
                 <img src="/frontend/cloud.svg" alt="Cloud" class="cloud-icon">
                 <div class="upload-text">Upload</div>
             </div>
+
+            <!-- System Status -->
+            <div id="systemStatus" style="margin-top: 24px; font-size: 11px; color: #64748b; display: none;">
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
+                </div>
+            </div>
         </div>
 
         <!-- Upload Modal -->
         <div class="upload-modal-overlay" id="uploadModal">
-            <div class="upload-modal">
+            <div class="upload-modal" style="max-width: 500px;">
                 <div class="modal-header">
-                    <h2>Uploading</h2>
+                    <h2>Processing</h2>
                     <button class="modal-close" id="modalClose">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                             <path d="M18 6L6 18M6 6l12 12" stroke="white" stroke-width="2" stroke-linecap="round" />
@@ -85,7 +92,7 @@
                 <div class="upload-status" id="uploadStatus">
                     <img src="/frontend/progresstabicons/extract.png" alt="Status" class="status-icon" id="statusIcon">
                     <div class="status-content">
-                        <span class="status-text" id="statusText">Extracting data...</span>
+                        <span class="status-text" id="statusText">Initializing...</span>
                         <div class="loading-wave">
                             <div class="loading-bar"></div>
                             <div class="loading-bar"></div>
@@ -93,6 +100,13 @@
                             <div class="loading-bar"></div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Processing Log -->
+                <div class="processing-log" id="processingLog"
+                    style="margin-top: 16px; max-height: 200px; overflow-y: auto; font-family: 'SF Mono', Consolas, monospace; font-size: 11px; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px; display: none;">
+                    <div style="color: #64748b; margin-bottom: 8px; font-weight: 600;">Pipeline Log</div>
+                    <div id="logContent"></div>
                 </div>
             </div>
         </div>
@@ -129,14 +143,34 @@
             }
         });
 
-        // File selection handler
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
-                // Validate file extension
+                // Validate file extension - accept all binwalk-supported formats
                 const fileName = file.name.toLowerCase();
-                if (!fileName.endsWith('.bin')) {
-                    alert('Please upload a .bin file only!');
+                const supportedExtensions = [
+                    // Raw firmware/binary
+                    '.bin', '.img', '.fw', '.rom', '.blob', '.raw', '.ddc', '.sfi',
+                    // ELF executables
+                    '.elf', '.so', '.o', '.a', '.ko',
+                    // Router/IoT specific
+                    '.trx', '.chk', '.dlf', '.rmt', '.uimage',
+                    // Compressed archives (binwalk can extract)
+                    '.zip', '.gz', '.tar', '.tgz', '.bz2', '.xz', '.lzma', '.7z', '.rar',
+                    // Filesystem images
+                    '.squashfs', '.jffs2', '.ubifs', '.cramfs', '.yaffs', '.yaffs2', '.ext2', '.ext3', '.ext4',
+                    // Other firmware formats
+                    '.hex', '.srec', '.s19', '.mot', '.ihex',
+                    // Android
+                    '.apk', '.dex', '.odex',
+                    // Allow any file if no extension (common for firmware)
+                ];
+
+                const hasExtension = fileName.includes('.');
+                const isSupported = !hasExtension || supportedExtensions.some(ext => fileName.endsWith(ext));
+
+                if (!isSupported) {
+                    alert('Unsupported file format. Supported: firmware (.bin, .img, .fw, .elf), archives (.zip, .gz, .tar), filesystem images (.squashfs, .jffs2)');
                     fileInput.value = '';
                     return;
                 }
@@ -227,25 +261,48 @@
             let progress = 0;
             const statusTextEl = document.getElementById('statusText');
             const statusIconEl = document.getElementById('statusIcon');
+            const processingLog = document.getElementById('processingLog');
+            const logContent = document.getElementById('logContent');
+
+            // Initialize log
+            processingLog.style.display = 'block';
+            logContent.innerHTML = '';
+            const startTime = performance.now();
+            const logEntries = [];
+
+            function addLogEntry(message, type = 'info') {
+                const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+                const colors = { info: '#94a3b8', success: '#22c55e', warning: '#f59e0b', step: '#60a5fa' };
+                const entry = `<div style="color:${colors[type] || colors.info};margin-bottom:4px;"><span style="color:#64748b;">[${elapsed}s]</span> ${message}</div>`;
+                logContent.innerHTML += entry;
+                logContent.scrollTop = logContent.scrollHeight;
+                logEntries.push({ time: elapsed, message, type });
+            }
+
+            addLogEntry(`Processing: ${currentFile.name}`, 'step');
+            addLogEntry(`File size: ${formatFileSize(currentFile.size)}`, 'info');
 
             const statuses = [
-                { percent: 0, text: 'Uploading file...', icon: '/frontend/progresstabicons/extract.png' },
-                { percent: 20, text: 'Extracting firmware...', icon: '/frontend/progresstabicons/data-transformation.png' },
-                { percent: 40, text: 'Analyzing binary...', icon: '/frontend/progresstabicons/filter.png' },
-                { percent: 60, text: 'Detecting crypto...', icon: '/frontend/progresstabicons/data-classification.png' },
-                { percent: 80, text: 'Verifying results...', icon: '/frontend/progresstabicons/verifying.png' },
-                { percent: 95, text: 'Finalizing...', icon: '/frontend/progresstabicons/aggregate.png' }
+                { percent: 0, text: 'Uploading file...', icon: '/frontend/progresstabicons/extract.png', log: 'Uploading to server...' },
+                { percent: 20, text: 'Extracting firmware...', icon: '/frontend/progresstabicons/data-transformation.png', log: 'Running binwalk extraction...' },
+                { percent: 40, text: 'Analyzing binary...', icon: '/frontend/progresstabicons/filter.png', log: 'XGBoost pre-filter analysis...' },
+                { percent: 60, text: 'Detecting crypto...', icon: '/frontend/progresstabicons/data-classification.png', log: 'GNN crypto classification...' },
+                { percent: 80, text: 'Protocol detection...', icon: '/frontend/progresstabicons/verifying.png', log: 'XGBoost protocol classifier...' },
+                { percent: 95, text: 'Finalizing...', icon: '/frontend/progresstabicons/aggregate.png', log: 'Aggregating results...' }
             ];
 
+            let lastLogIndex = -1;
             function updateProgress(percent, statusIndex) {
                 gsap.to(liquidFill, { width: `${percent}%`, duration: 0.3, ease: "power1.out" });
                 progressPercent.textContent = `${percent}%`;
 
                 const status = statuses[statusIndex];
-                if (status && statusTextEl.textContent !== status.text) {
+                if (status && statusIndex !== lastLogIndex) {
                     statusTextEl.textContent = status.text;
                     statusIconEl.src = status.icon;
                     progressSpeed.textContent = 'Processing...';
+                    addLogEntry(status.log, 'step');
+                    lastLogIndex = statusIndex;
                 }
             }
 
@@ -288,25 +345,42 @@
                 const result = await uploadPromise;
                 clearInterval(analysisInterval);
 
+                // Log analysis results
+                const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
+                addLogEntry('Architecture detection complete', 'success');
+                addLogEntry(`Detected: ${result.summary?.architecture || 'Unknown'}`, 'info');
+                addLogEntry(`Crypto primitives: ${result.summary?.crypto_count || 0}`, 'info');
+                addLogEntry(`Protocols: ${result.protocols?.length || 0}`, 'info');
+                addLogEntry(`Analysis complete in ${totalTime}s`, 'success');
+
                 // Complete
                 updateProgress(100, statuses.length - 1);
-                statusTextEl.textContent = '✓ Analysis complete!';
+                statusTextEl.textContent = 'Analysis complete!';
                 statusIconEl.style.opacity = '0';
                 uploadStatus.style.color = '#4ade80';
                 gsap.to('.loading-wave', { opacity: 0, duration: 0.3 });
 
-                // Store results for results page
+                // Store results and log for results page
                 sessionStorage.setItem('cryptoHunterJobId', result.job_id);
                 sessionStorage.setItem('cryptoHunterResults', JSON.stringify(result));
+                sessionStorage.setItem('cryptoHunterLog', JSON.stringify({
+                    filename: currentFile.name,
+                    fileSize: currentFile.size,
+                    totalTime: totalTime,
+                    entries: logEntries
+                }));
 
                 // Redirect to results
                 setTimeout(() => {
                     window.location.href = '/cryptex/results';
-                }, 1000);
+                }, 1200);
 
             } catch (error) {
                 console.error('Upload error:', error);
-                statusTextEl.textContent = '✗ ' + error.message;
+                const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
+                addLogEntry(`Error: ${error.message}`, 'warning');
+                addLogEntry(`Failed after ${totalTime}s`, 'warning');
+                statusTextEl.textContent = 'Error: ' + error.message;
                 uploadStatus.style.color = '#ef4444';
                 gsap.to('.loading-wave', { opacity: 0, duration: 0.3 });
             }
@@ -390,6 +464,48 @@
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
         }
+
+        // Load system status on page load
+        async function loadSystemStatus() {
+            try {
+                const r = await fetch('/api/system-status');
+                const data = await r.json();
+                const container = document.getElementById('systemStatus');
+                if (!container) return;
+
+                const tools = [
+                    { key: 'binwalk', name: 'Binwalk' },
+                    { key: 'ghidra', name: 'Ghidra' },
+                    { key: 'xgboost_filter', name: 'XGBoost' },
+                    { key: 'gnn_classifier', name: 'GNN' },
+                    { key: 'protocol_classifier', name: 'Protocol' },
+                    { key: 'angr', name: 'Angr' },
+                    { key: 'redis', name: 'Redis' },
+                    { key: 'rabbitmq', name: 'RabbitMQ' },
+                    { key: 'postgresql', name: 'PostgreSQL' },
+                    { key: 'celery', name: 'Celery' }
+                ];
+
+                let html = '<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">';
+                tools.forEach(t => {
+                    const comp = data.components[t.key] || {};
+                    const available = comp.available;
+                    const icon = available ? '✓' : (comp.icon === '○' ? '○' : '✗');
+                    const color = available ? '#22c55e' : (comp.icon === '○' ? '#94a3b8' : '#ef4444');
+                    html += `<span style="padding:4px 8px;background:rgba(255,255,255,0.05);border-radius:4px;" title="${comp.status || 'Unknown'}"><span style="color:${color};margin-right:4px;">${icon}</span>${t.name}</span>`;
+                });
+                html += '</div>';
+                html += `<div style="margin-top:8px;text-align:center;color:#64748b;">${data.summary?.mode || 'standalone'} mode | Core: ${data.summary?.core_tools_ready || '?'}</div>`;
+
+                container.innerHTML = html;
+                container.style.display = 'block';
+            } catch (e) {
+                console.log('Could not load system status:', e);
+            }
+        }
+
+        // Load status on page ready
+        document.addEventListener('DOMContentLoaded', loadSystemStatus);
     </script>
 </body>
 

@@ -78,6 +78,7 @@
 
         .export-wrapper {
             position: relative;
+            z-index: 1001;
         }
 
         .export-btn {
@@ -106,7 +107,7 @@
             border: 1px solid var(--border);
             display: none;
             min-width: 140px;
-            z-index: 100;
+            z-index: 1000;
             overflow: hidden;
         }
 
@@ -536,8 +537,8 @@
                 <div class="card-label">Architecture</div>
             </div>
             <div class="bento-card">
-                <div class="card-value small" id="securityValue">N/A</div>
-                <div class="card-label">Security Level</div>
+                <div class="card-value small" id="entropyValue">0.0</div>
+                <div class="card-label">Entropy</div>
             </div>
         </div>
 
@@ -547,6 +548,7 @@
             <div class="tab" onclick="showTab('protocols')">Protocols</div>
             <div class="tab" onclick="showTab('architecture')">Architecture</div>
             <div class="tab" onclick="showTab('entropy')">Entropy</div>
+            <div class="tab" onclick="showTab('pipeline')">Pipeline</div>
         </div>
 
         <div id="tab-overview" class="tab-content active">
@@ -556,6 +558,15 @@
                 </div>
                 <div id="top-detections">
                     <p style="color:var(--text-muted);">Loading...</p>
+                </div>
+            </div>
+            <div class="section" id="processingLogSection" style="display:none; margin-top: 24px;">
+                <div class="section-header">
+                    <div class="section-title">Processing Log</div>
+                    <button class="btn btn-ghost" onclick="toggleProcessingLog()">Toggle</button>
+                </div>
+                <div id="processingLogDisplay"
+                    style="font-family: 'SF Mono', Consolas, monospace; font-size: 11px; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 16px; max-height: 250px; overflow-y: auto;">
                 </div>
             </div>
         </div>
@@ -607,6 +618,17 @@
                 </div>
             </div>
         </div>
+
+        <div id="tab-pipeline" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-title">Pipeline Summary</div>
+                </div>
+                <div id="pipeline-content">
+                    <p style="color:var(--text-muted);">Loading pipeline data...</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -632,7 +654,7 @@
         document.addEventListener('click', () => document.getElementById('exportDropdown').classList.remove('show'));
 
         function showTab(name) {
-            ['overview', 'algorithms', 'protocols', 'architecture', 'entropy'].forEach((t, i) => {
+            ['overview', 'algorithms', 'protocols', 'architecture', 'entropy', 'pipeline'].forEach((t, i) => {
                 document.querySelectorAll('.tab')[i].classList.toggle('active', t === name);
             });
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -662,6 +684,49 @@
             } else {
                 document.getElementById('top-detections').innerHTML = '<div class="no-results">No analysis data available. Please upload a file first.</div>';
             }
+            loadProcessingLog();
+        }
+
+        function loadProcessingLog() {
+            const logData = sessionStorage.getItem('cryptoHunterLog');
+            if (!logData) return;
+
+            try {
+                const log = JSON.parse(logData);
+                const section = document.getElementById('processingLogSection');
+                const display = document.getElementById('processingLogDisplay');
+
+                if (section && display && log.entries?.length) {
+                    section.style.display = 'block';
+
+                    let html = `<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.1);">`;
+                    html += `<div style="color:#60a5fa;font-weight:600;">${log.filename}</div>`;
+                    html += `<div style="color:#64748b;">Size: ${formatFileSize(log.fileSize)} | Total: ${log.totalTime}s</div>`;
+                    html += `</div>`;
+
+                    log.entries.forEach(e => {
+                        const colors = { info: '#94a3b8', success: '#22c55e', warning: '#f59e0b', step: '#60a5fa' };
+                        html += `<div style="color:${colors[e.type] || '#94a3b8'};margin-bottom:4px;"><span style="color:#64748b;">[${e.time}s]</span> ${e.message}</div>`;
+                    });
+
+                    display.innerHTML = html;
+                }
+            } catch (e) { console.error('Error loading processing log:', e); }
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function toggleProcessingLog() {
+            const display = document.getElementById('processingLogDisplay');
+            if (display) {
+                display.style.display = display.style.display === 'none' ? 'block' : 'none';
+            }
         }
 
         function displayResults(data) {
@@ -670,13 +735,13 @@
             const cls = data.classifications || [];
             const archD = data.architecture_detection || {};
             const arch = archD.final?.architecture || archD.method_3?.architecture || archD.method_1?.architecture || data.summary?.architecture || 'Unknown';
-            const sec = data.summary?.security_level || 'N/A';
+            const entropy = data.summary?.entropy || data.firmware_intelligence?.entropy || 0;
 
             // Animate card values
             gsap.to('#primitivesValue', { textContent: count, duration: 1, snap: { textContent: 1 }, ease: 'power2.out' });
             gsap.to('#protocolsValue', { textContent: protocols.length, duration: 1, snap: { textContent: 1 }, ease: 'power2.out' });
             document.getElementById('archValue').textContent = arch;
-            document.getElementById('securityValue').textContent = sec;
+            document.getElementById('entropyValue').textContent = typeof entropy === 'number' ? entropy.toFixed(2) : entropy;
 
             document.querySelectorAll('.tab')[1].textContent = `Algorithms (${cls.length})`;
             document.querySelectorAll('.tab')[2].textContent = `Protocols (${protocols.length})`;
@@ -686,27 +751,59 @@
             if (cls.length > 0) {
                 cls.slice(0, 5).forEach(c => {
                     const cf = c.confidence >= 0.85 ? 'high' : c.confidence >= 0.70 ? 'medium' : 'low';
-                    topHtml += `<div class="item"><div class="item-header"><div><div class="item-name">${c.class_name}</div><div class="item-type">${c.indicator || c.name || ''}</div></div><div class="confidence ${cf}">${Math.round(c.confidence * 100)}%</div></div></div>`;
+                    const offsetHex = c.offset ? `0x${c.offset.toString(16).toUpperCase()}` : '';
+                    topHtml += `<div class="item"><div class="item-header"><div><div class="item-name">${c.class_name}</div><div class="item-type">${c.name || c.indicator || ''} ${offsetHex ? `at ${offsetHex}` : ''}</div></div><div class="confidence ${cf}">${Math.round(c.confidence * 100)}%</div></div></div>`;
                 });
                 if (cls.length > 5) topHtml += `<p style="color:var(--text-muted);text-align:center;margin-top:20px;">+ ${cls.length - 5} more in Algorithms tab</p>`;
             } else topHtml = '<div class="no-results">No cryptographic primitives detected.</div>';
             document.getElementById('top-detections').innerHTML = topHtml;
 
-            // Algorithms
+            // Algorithms - Enhanced with more details
             let algoHtml = '';
             if (cls.length > 0) {
                 cls.forEach((c, i) => {
                     const cf = c.confidence >= 0.85 ? 'high' : c.confidence >= 0.70 ? 'medium' : 'low';
-                    algoHtml += `<div class="item"><div class="item-header" onclick="toggleDetail('d${i}')"><div><div class="item-name">${c.class_name}</div><div class="item-type">${c.name || ''}</div></div><div><span class="confidence ${cf}">${Math.round(c.confidence * 100)}%</span><span class="toggle-icon" id="i${i}">▼</span></div></div><div class="detail-section" id="d${i}"><div class="detail-row"><span class="detail-label">Indicator</span><span class="detail-value">${c.indicator || 'N/A'}</span></div></div></div>`;
+                    const offsetHex = c.offset ? `0x${c.offset.toString(16).toUpperCase()}` : null;
+                    const sizeStr = c.size ? `${c.size}B` : null;
+                    const hexContext = c.hex_context || (c.raw_bytes ? toHex(c.raw_bytes) : '');
+
+                    // Build detailed technical subtitle
+                    const subtitleParts = [];
+                    if (c.indicator) subtitleParts.push(c.indicator);
+                    else if (c.name) subtitleParts.push(c.name);
+                    if (offsetHex) subtitleParts.push(`@ ${offsetHex}`);
+                    if (sizeStr) subtitleParts.push(sizeStr);
+
+                    // Add detection reason based on class_id
+                    const classReasons = {
+                        0: 'No crypto pattern',
+                        1: 'AES S-box/key schedule detected',
+                        2: 'Hash constants (SHA-256 K/H, MD5 T)',
+                        3: 'Stream cipher state/keystream',
+                        4: 'RSA modexp / ECC point ops',
+                        5: 'HMAC structure / Poly1305 init',
+                        6: 'PBKDF2 loop / scrypt mixing',
+                        7: 'PRNG state / entropy collection',
+                        8: 'XOR loop / byte manipulation',
+                        9: 'Kyber/Dilithium lattice ops'
+                    };
+                    const reason = classReasons[c.class_id] || `Class ${c.class_id} pattern`;
+                    subtitleParts.push(`[${reason}]`);
+
+                    const subtitle = subtitleParts.join(' | ');
+
+                    algoHtml += `<div class="item"><div class="item-header" onclick="toggleDetail('d${i}')"><div><div class="item-name">${c.class_name}</div><div class="item-type" style="font-size:11px;opacity:0.8;">${subtitle}</div></div><div><span class="confidence ${cf}">${Math.round(c.confidence * 100)}%</span><span class="toggle-icon" id="i${i}">▼</span></div></div><div class="detail-section" id="d${i}"><div class="detail-row"><span class="detail-label">Detection Method</span><span class="detail-value">${c.method || 'GNN + Heuristic'}</span></div><div class="detail-row"><span class="detail-label">Pattern Match</span><span class="detail-value">${c.indicator || 'Byte pattern / opcode sequence'}</span></div><div class="detail-row"><span class="detail-label">Offset Range</span><span class="detail-value">${offsetHex || 'N/A'} ${c.end_offset ? `- 0x${c.end_offset.toString(16).toUpperCase()}` : ''}</span></div><div class="detail-row"><span class="detail-label">Size</span><span class="detail-value">${c.size ? `${c.size} bytes` : 'Function-level'}</span></div><div class="detail-row"><span class="detail-label">Class ID</span><span class="detail-value">${c.class_id} (${c.class_name})</span></div><div class="detail-row"><span class="detail-label">Why Classified</span><span class="detail-value" style="font-style:italic;">${reason}</span></div>${hexContext ? `<div class="hex-context" style="margin-top:12px;">${hexContext}</div>` : ''}</div></div>`;
                 });
             } else algoHtml = '<div class="no-results">No cryptographic primitives detected.</div>';
             document.getElementById('algorithms-list').innerHTML = algoHtml;
 
-            // Protocols
+            // Protocols - Enhanced with method info
             let protoHtml = '';
             if (protocols.length > 0) {
                 protocols.forEach((p, i) => {
-                    protoHtml += `<div class="item" onclick="toggleDetail('p${i}')"><div class="item-header"><div><div class="item-name">${p.name}</div><div class="item-type">${p.description || ''}</div></div><div><span class="confidence">${Math.round(p.confidence * 100)}%</span><span class="toggle-icon">▼</span></div></div><div class="detail-section" id="p${i}"><p style="color:var(--text-muted);">Click Load Details for more information.</p></div></div>`;
+                    const cf = p.confidence >= 0.85 ? 'high' : p.confidence >= 0.70 ? 'medium' : 'low';
+                    const components = (p.components || []).filter(c => c).join(', ');
+                    protoHtml += `<div class="item" onclick="toggleDetail('p${i}')"><div class="item-header"><div><div class="item-name">${p.name}</div><div class="item-type">${p.description || ''}</div></div><div><span class="confidence ${cf}">${Math.round((p.confidence || 0) * 100)}%</span><span class="toggle-icon">▼</span></div></div><div class="detail-section" id="p${i}"><div class="detail-row"><span class="detail-label">Detection</span><span class="detail-value">${p.method || 'heuristic'}</span></div><div class="detail-row"><span class="detail-label">Components</span><span class="detail-value">${components || 'N/A'}</span></div></div></div>`;
                 });
             } else protoHtml = '<div class="no-results">No protocols detected.</div>';
             document.getElementById('protocols-list').innerHTML = protoHtml;
@@ -719,6 +816,116 @@
             if (archD.final) archHtml += `<div class="arch-card arch-final"><div class="arch-value">${archD.final.architecture || arch}</div><div class="arch-label">Final Decision (${Math.round(archD.final.confidence || 0)}%)</div></div>`;
             archHtml += '</div><div id="arch-detailed" style="margin-top:24px;"></div>';
             document.getElementById('architecture-detail').innerHTML = archHtml;
+
+            // Auto-load entropy analysis if available
+            if (data.firmware_intelligence?.high_entropy_regions) {
+                autoLoadEntropy(data.firmware_intelligence);
+            }
+
+            // Display pipeline summary
+            displayPipeline(data);
+        }
+
+        function toHex(bytes) {
+            if (!bytes) return '';
+            if (typeof bytes === 'string') return bytes;
+            return Array.from(bytes).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+        }
+
+        function autoLoadEntropy(fi) {
+            const el = document.getElementById('entropy-content');
+            const entropy = fi.entropy || 0;
+            const regions = fi.high_entropy_regions || [];
+            let h = `<div class="entropy-value">${entropy.toFixed(4)}</div><div style="color:var(--text-muted);margin:8px 0;">Global Entropy</div><div class="entropy-bar"><div class="entropy-fill" style="width:${(entropy / 8 * 100)}%"></div></div>`;
+            if (regions.length) {
+                h += '<div style="margin-top:24px;"><div style="color:#ef4444;font-weight:600;margin-bottom:16px;">High Entropy Regions (' + regions.length + ')</div>';
+                regions.slice(0, 10).forEach(r => {
+                    const off = typeof r.offset === 'number' ? `0x${r.offset.toString(16).toUpperCase()}` : r.offset_hex || 'N/A';
+                    h += `<div class="region-item"><span>Offset: ${off}</span><span>Size: ${r.size || 'N/A'}B</span><span>Entropy: ${r.entropy?.toFixed(2) || 'N/A'}</span></div>`;
+                });
+                h += '</div>';
+            } else h += '<p style="color:#22c55e;margin-top:20px;">No high-entropy regions detected</p>';
+            el.innerHTML = h;
+        }
+
+        function displayPipeline(data) {
+            const el = document.getElementById('pipeline-content');
+            if (!el) return;
+
+            const summary = data.summary || {};
+            const fw = data.firmware_intelligence || {};
+            const symbolic = data.symbolic_verification || {};
+            const protocols = data.protocols || [];
+            const cls = data.classifications || [];
+
+            const pipelineSteps = [
+                {
+                    name: 'Firmware Extraction',
+                    icon: summary.extracted ? '✓' : '○',
+                    status: summary.extracted ? 'Completed' : 'Skipped (raw binary)',
+                    color: summary.extracted ? '#22c55e' : '#94a3b8',
+                    details: summary.extracted ? `Encryption: ${summary.encryption_status || 'Unknown'}` : 'Direct binary analysis'
+                },
+                {
+                    name: 'Architecture Detection',
+                    icon: summary.architecture ? '✓' : '✗',
+                    status: summary.architecture || 'Unknown',
+                    color: summary.architecture && summary.architecture !== 'Unknown' ? '#22c55e' : '#f59e0b',
+                    details: `3-method ensemble (Capstone, Header, String)`
+                },
+                {
+                    name: 'XGBoost Pre-filter',
+                    icon: cls.length > 0 ? '✓' : '○',
+                    status: cls.length > 0 ? `${cls.length} candidates filtered` : 'No candidates',
+                    color: cls.length > 0 ? '#22c55e' : '#94a3b8',
+                    details: 'Fast filtering of crypto-like functions'
+                },
+                {
+                    name: 'GNN Crypto Classifier',
+                    icon: cls.length > 0 ? '✓' : '○',
+                    status: `${cls.length} primitives detected`,
+                    color: cls.length > 0 ? '#22c55e' : '#94a3b8',
+                    details: '10-class classification (AES, SHA, RSA, etc.)'
+                },
+                {
+                    name: 'XGBoost Protocol Classifier',
+                    icon: protocols.length > 0 ? '✓' : '○',
+                    status: `${protocols.length} protocols detected`,
+                    color: protocols.length > 0 ? '#22c55e' : '#94a3b8',
+                    details: protocols.length > 0 ? protocols.map(p => `${p.name} (${p.method || 'auto'})`).join(', ') : '30-class protocol detection'
+                },
+                {
+                    name: 'Angr Symbolic Verification',
+                    icon: symbolic.enabled ? '✓' : '○',
+                    status: symbolic.enabled ? (symbolic.method || 'completed') : 'Disabled',
+                    color: symbolic.enabled ? '#22c55e' : '#94a3b8',
+                    details: symbolic.enabled ? `${symbolic.functions_verified || 0} functions verified` : 'ENABLE_ANGR=false or no high-confidence detections'
+                },
+                {
+                    name: 'Entropy Analysis',
+                    icon: fw.entropy ? '✓' : '○',
+                    status: fw.entropy ? `Global: ${fw.entropy.toFixed(2)}` : 'Skipped',
+                    color: fw.entropy ? '#22c55e' : '#94a3b8',
+                    details: fw.high_entropy_regions ? `${fw.high_entropy_regions.length} high-entropy regions` : 'No regions detected'
+                }
+            ];
+
+            let html = '<div style="display:flex;flex-direction:column;gap:12px;">';
+            pipelineSteps.forEach(step => {
+                html += `<div class="item" style="padding:16px;"><div class="item-header"><div><div class="item-name"><span style="color:${step.color};margin-right:8px;">${step.icon}</span>${step.name}</div><div class="item-type">${step.details}</div></div><div style="color:${step.color};font-weight:600;">${step.status}</div></div></div>`;
+            });
+            html += '</div>';
+
+            // Add processing log if available
+            const logData = sessionStorage.getItem('cryptoHunterLog');
+            if (logData) {
+                try {
+                    const log = JSON.parse(logData);
+                    html += `<div style="margin-top:24px;padding:16px;background:rgba(0,0,0,0.2);border-radius:8px;"><div style="font-weight:600;margin-bottom:12px;">Processing Time: ${log.totalTime}s</div><div style="font-size:12px;color:#94a3b8;">${log.entries?.length || 0} log entries recorded</div></div>`;
+                } catch (e) { }
+            }
+
+            el.innerHTML = html;
         }
 
         async function fetchDetailedReport() {
