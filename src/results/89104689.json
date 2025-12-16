@@ -1,0 +1,91 @@
+{
+  "job_id": "89104689",
+  "status": "completed",
+  "filename": "ibt-00a0-01a1-iml.sfi",
+  "file_path": "D:\\SIH25239\\CryptoHunter\\src\\uploads\\89104689_ibt-00a0-01a1-iml.sfi",
+  "size": 66236,
+  "sha256": "08f182417f0385f199b903ba1a955fe399732b76446654bce533fba609109034",
+  "timestamp": "2025-12-09T10:56:35.961295",
+  "classifications": [
+    {
+      "name": "xor_cipher",
+      "class_id": 8,
+      "class_name": "XOR Cipher",
+      "confidence": 0.7,
+      "indicator": "XOR encryption pattern detected"
+    }
+  ],
+  "protocols": [],
+  "summary": {
+    "crypto_detected": true,
+    "crypto_count": 1,
+    "architecture": "ARM32",
+    "files_analyzed": 1,
+    "extracted": false,
+    "encryption_status": "partially_encrypted",
+    "security_level": "medium"
+  },
+  "extraction": null,
+  "ghidra_analysis": {
+    "available": false,
+    "reason": "GHIDRA_PATH not set or Ghidra not found"
+  },
+  "firmware_intelligence": {
+    "file_size": 66236,
+    "encryption_detected": false,
+    "encryption_status": "partially_encrypted",
+    "security_level": "medium",
+    "findings": [
+      {
+        "type": "PARTIAL_ENCRYPTION",
+        "severity": "medium",
+        "description": "Firmware has mixed encrypted and unencrypted sections",
+        "confidence": 0.75
+      }
+    ],
+    "recommendations": [
+      "Standard analysis should work"
+    ],
+    "entropy_analysis": {
+      "average": 6.473,
+      "max": 7.009,
+      "min": 2.89,
+      "variance": 4.119
+    }
+  },
+  "architecture_detection": {
+    "method_1": {
+      "name": "Capstone Disassembly",
+      "architecture": "ARM-Thumb",
+      "confidence": 99.1
+    },
+    "method_2": {
+      "name": "Header + Prologue",
+      "architecture": "ARM-Thumb",
+      "confidence": 69.1
+    },
+    "method_3": {
+      "name": "String Search",
+      "architecture": null,
+      "confidence": 0.0,
+      "details": {}
+    },
+    "final": {
+      "architecture": "ARM32",
+      "confidence": 100.0,
+      "bits": 32,
+      "endian": "BE",
+      "method": "ensemble",
+      "agreement": {
+        "methods_agreed": 1,
+        "total_methods": 4,
+        "winning_detector": "capstone"
+      }
+    }
+  },
+  "symbolic_verification": {
+    "enabled": true,
+    "method": "skipped",
+    "reason": "No high-confidence detections to verify"
+  }
+}

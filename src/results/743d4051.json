@@ -1,0 +1,199 @@
+{
+  "job_id": "743d4051",
+  "status": "completed",
+  "filename": "COVR-1202_1203_stripped.bin",
+  "file_path": "D:\\SIH25239\\CryptoHunter\\src\\uploads\\743d4051_COVR-1202_1203_stripped.bin",
+  "size": 16165502,
+  "sha256": "5ed87c3856f013396d3dd2d9f8369bfb4c837826a5fff1e2593ecb3b1096e18d",
+  "timestamp": "2025-12-09T11:26:46.634164",
+  "classifications": [
+    {
+      "name": "hash_md5",
+      "class_id": 2,
+      "class_name": "Hash Function",
+      "confidence": 0.78,
+      "indicator": "MD5 reference found"
+    },
+    {
+      "name": "cipher_aes",
+      "class_id": 1,
+      "class_name": "AES/Block Cipher",
+      "confidence": 0.85,
+      "indicator": "AES algorithm reference"
+    },
+    {
+      "name": "cipher_des",
+      "class_id": 1,
+      "class_name": "AES/Block Cipher",
+      "confidence": 0.75,
+      "indicator": "DES algorithm reference"
+    },
+    {
+      "name": "cipher_rc4",
+      "class_id": 3,
+      "class_name": "Stream Cipher",
+      "confidence": 0.8,
+      "indicator": "RC4 algorithm reference"
+    },
+    {
+      "name": "xor_cipher",
+      "class_id": 8,
+      "class_name": "XOR Cipher",
+      "confidence": 0.7,
+      "indicator": "XOR encryption pattern detected"
+    }
+  ],
+  "protocols": [
+    {
+      "name": "TLS_HANDSHAKE",
+      "description": "TLS/SSL detected via crypto combination",
+      "confidence": 0.7,
+      "method": "heuristic",
+      "components": [
+        "AES",
+        "SHA",
+        null
+      ]
+    }
+  ],
+  "summary": {
+    "crypto_detected": true,
+    "crypto_count": 5,
+    "architecture": "ARM32",
+    "files_analyzed": 1,
+    "extracted": false,
+    "encryption_status": "fully_encrypted",
+    "security_level": "high"
+  },
+  "extraction": null,
+  "ghidra_analysis": {
+    "available": false,
+    "reason": "GHIDRA_PATH not set or Ghidra not found"
+  },
+  "firmware_intelligence": {
+    "file_size": 16165502,
+    "encryption_detected": true,
+    "encryption_status": "fully_encrypted",
+    "security_level": "high",
+    "findings": [
+      {
+        "type": "ENCRYPTION",
+        "severity": "high",
+        "description": "Firmware is fully encrypted (entropy: 7.93)",
+        "confidence": 0.95
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "AES encryption likely used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "RSA public key crypto likely used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "SHA hashing used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "CBC block cipher mode",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "GCM authenticated encryption",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "SSL/TLS protocol",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "TLS protocol",
+        "confidence": 0.7
+      }
+    ],
+    "recommendations": [
+      "Firmware uses strong encryption - indicates security-conscious design",
+      "Secure boot likely implemented",
+      "Cannot analyze without decryption key"
+    ],
+    "entropy_analysis": {
+      "average": 7.927,
+      "max": 7.956,
+      "min": 7.396,
+      "variance": 0.559
+    }
+  },
+  "architecture_detection": {
+    "method_1": {
+      "name": "Capstone Disassembly",
+      "architecture": "x86",
+      "confidence": 67.2
+    },
+    "method_2": {
+      "name": "Header + Prologue",
+      "architecture": "ARM-Thumb",
+      "confidence": 73.9
+    },
+    "method_3": {
+      "name": "String Search",
+      "architecture": null,
+      "confidence": 0.0,
+      "details": {}
+    },
+    "final": {
+      "architecture": "ARM32",
+      "confidence": 93.3,
+      "bits": 32,
+      "endian": "LE",
+      "method": "ensemble",
+      "agreement": {
+        "methods_agreed": 1,
+        "total_methods": 4,
+        "winning_detector": "capstone"
+      }
+    }
+  },
+  "symbolic_verification": {
+    "enabled": true,
+    "method": "angr_symbolic",
+    "functions_verified": 2,
+    "verifications": [
+      {
+        "function_name": "cipher_aes",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.85,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "cipher_rc4",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.8,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      }
+    ]
+  }
+}

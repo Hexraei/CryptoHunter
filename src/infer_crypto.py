@@ -1,8 +1,25 @@
-# infer_crypto.py - Standalone GNN Inference on Graph JSON
-# Run trained model on pre-extracted Ghidra graphs
-# Now with Z80/AVR/Xtensa/ARM Cortex architecture detection support
-#
-# Usage: python infer_crypto.py <graph.json> [--model model.pt] [--binary firmware.bin]
+"""
+CryptoHunter - GNN Inference Engine
+
+Runs trained Graph Neural Network model on pre-extracted Ghidra CFG graphs
+to classify functions as cryptographic primitives.
+
+Key Functionality:
+- CryptoInference class: Main inference engine
+  - _load_model(): Loads trained PyTorch model
+  - infer(): Runs batch inference on function graphs  
+  - _model_infer(): GNN model inference for single function
+  - _heuristic_infer(): Fallback pattern-matching classification
+- detect_architecture(): Detects Z80/AVR/Xtensa/ARM Cortex architectures
+
+Crypto Classes (10):
+  0: Non-Crypto, 1: AES/Block Cipher, 2: Hash Function,
+  3: Stream Cipher, 4: Public Key, 5: Auth/MAC,
+  6: KDF, 7: PRNG, 8: XOR Cipher, 9: Post-Quantum
+
+Usage:
+    python infer_crypto.py <graph.json> [--model model.pt] [--binary firmware.bin]
+"""
 
 import os
 import sys
@@ -117,7 +134,7 @@ def detect_architecture(binary_path):
 class CryptoInference:
     """Run GNN model inference on graph data."""
     
-    def __init__(self, model_path="sota_crypto_model.pt"):
+    def __init__(self, model_path="model.pt"):
         self.model_path = model_path
         self.model = None
         self.device = None
@@ -170,13 +187,13 @@ class CryptoInference:
                 self.model = SOTA_GIN()
                 self.model.load_state_dict(torch.load(self.model_path, map_location=self.device))
                 self.model.eval()
-                print(f" Model loaded: {self.model_path}")
+                print(f"[INFO] Model loaded: {self.model_path}")
             else:
-                print(f" Model not found: {self.model_path}")
+                print(f"[WARNING] Model not found: {self.model_path}")
                 print("  Using heuristic classification")
                 
         except ImportError as e:
-            print(f" PyTorch dependencies missing: {e}")
+            print(f"[WARNING] PyTorch dependencies missing: {e}")
             print("  Using heuristic classification")
     
     def infer(self, functions):
@@ -304,7 +321,7 @@ def main():
         description="Run crypto classification on Ghidra graph JSON"
     )
     parser.add_argument("graph_json", help="Path to graph JSON file")
-    parser.add_argument("--model", "-m", default="sota_crypto_model.pt",
+    parser.add_argument("--model", "-m", default="model.pt",
                        help="Path to trained model")
     parser.add_argument("--binary", "-b", help="Original binary for architecture detection")
     parser.add_argument("--output", "-o", help="Output JSON path")

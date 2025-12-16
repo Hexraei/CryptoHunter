@@ -1,0 +1,523 @@
+{
+  "job_id": "2b49cd8e",
+  "status": "completed",
+  "filename": "P_2_S_2.bin",
+  "file_path": "D:\\SIH25239\\CryptoHunter\\src\\uploads\\2b49cd8e_P_2_S_2.bin",
+  "size": 1587564,
+  "sha256": "1d902fd9e3d9f17086bbe2485f4d5028057bae6ef97001117538363b14f32c05",
+  "timestamp": "2025-12-09T11:22:38.244545",
+  "classifications": [
+    {
+      "name": "openssl_library",
+      "class_id": 1,
+      "class_name": "AES/Block Cipher",
+      "confidence": 0.9,
+      "indicator": "OpenSSL crypto library detected"
+    },
+    {
+      "name": "ssl_marker_ssl_functions",
+      "class_id": 1,
+      "class_name": "AES/Block Cipher",
+      "confidence": 0.85,
+      "indicator": "SSL Functions found in firmware"
+    },
+    {
+      "name": "hash_sha256",
+      "class_id": 2,
+      "class_name": "Hash Function",
+      "confidence": 0.9,
+      "indicator": "SHA-256 reference found"
+    },
+    {
+      "name": "hash_sha512",
+      "class_id": 2,
+      "class_name": "Hash Function",
+      "confidence": 0.9,
+      "indicator": "SHA-512 reference found"
+    },
+    {
+      "name": "hash_sha1",
+      "class_id": 2,
+      "class_name": "Hash Function",
+      "confidence": 0.85,
+      "indicator": "SHA-1 reference found"
+    },
+    {
+      "name": "hash_md5",
+      "class_id": 2,
+      "class_name": "Hash Function",
+      "confidence": 0.8,
+      "indicator": "MD5 reference found"
+    },
+    {
+      "name": "hash_hmac",
+      "class_id": 5,
+      "class_name": "Auth/MAC",
+      "confidence": 0.85,
+      "indicator": "HMAC reference found"
+    },
+    {
+      "name": "cipher_aes",
+      "class_id": 1,
+      "class_name": "AES/Block Cipher",
+      "confidence": 0.85,
+      "indicator": "AES algorithm reference"
+    },
+    {
+      "name": "cipher_aes128",
+      "class_id": 1,
+      "class_name": "AES/Block Cipher",
+      "confidence": 0.9,
+      "indicator": "AES-128 algorithm reference"
+    },
+    {
+      "name": "cipher_aes256",
+      "class_id": 1,
+      "class_name": "AES/Block Cipher",
+      "confidence": 0.92,
+      "indicator": "AES-256 algorithm reference"
+    },
+    {
+      "name": "cipher_des",
+      "class_id": 1,
+      "class_name": "AES/Block Cipher",
+      "confidence": 0.75,
+      "indicator": "DES algorithm reference"
+    },
+    {
+      "name": "cipher_3des",
+      "class_id": 1,
+      "class_name": "AES/Block Cipher",
+      "confidence": 0.78,
+      "indicator": "3DES algorithm reference"
+    },
+    {
+      "name": "cipher_rc4",
+      "class_id": 3,
+      "class_name": "Stream Cipher",
+      "confidence": 0.8,
+      "indicator": "RC4 algorithm reference"
+    },
+    {
+      "name": "cipher_chacha20",
+      "class_id": 3,
+      "class_name": "Stream Cipher",
+      "confidence": 0.88,
+      "indicator": "ChaCha20 algorithm reference"
+    },
+    {
+      "name": "rsa_marker",
+      "class_id": 4,
+      "class_name": "Public Key",
+      "confidence": 0.88,
+      "indicator": "Found: RSA"
+    },
+    {
+      "name": "chacha_constant",
+      "class_id": 3,
+      "class_name": "Stream Cipher",
+      "confidence": 0.94,
+      "indicator": "ChaCha constant found"
+    },
+    {
+      "name": "hmac_marker",
+      "class_id": 5,
+      "class_name": "Auth/MAC",
+      "confidence": 0.8,
+      "indicator": "HMAC string found"
+    },
+    {
+      "name": "prng_indicator",
+      "class_id": 7,
+      "class_name": "PRNG",
+      "confidence": 0.7,
+      "indicator": "Random function reference"
+    },
+    {
+      "name": "rc4_stream",
+      "class_id": 3,
+      "class_name": "Stream Cipher",
+      "confidence": 0.85,
+      "indicator": "RC4 key schedule detected"
+    },
+    {
+      "name": "xor_cipher",
+      "class_id": 8,
+      "class_name": "XOR Cipher",
+      "confidence": 0.7,
+      "indicator": "XOR encryption pattern detected"
+    },
+    {
+      "name": "ssl_marker_tls_functions",
+      "class_id": 1,
+      "class_name": "AES/Block Cipher",
+      "confidence": 0.82,
+      "indicator": "TLS Functions found in firmware"
+    }
+  ],
+  "protocols": [
+    {
+      "name": "TLS_HANDSHAKE",
+      "description": "TLS/SSL detected via crypto combination",
+      "confidence": 0.85,
+      "method": "heuristic",
+      "components": [
+        "AES",
+        "SHA",
+        "RSA"
+      ]
+    },
+    {
+      "name": "SSH_KEX",
+      "description": "SSH Key Exchange",
+      "confidence": 0.75,
+      "method": "heuristic",
+      "components": [
+        "Encryption",
+        "PublicKey"
+      ]
+    },
+    {
+      "name": "SECURE_BOOT",
+      "description": "Secure Boot Chain",
+      "confidence": 0.7,
+      "method": "heuristic",
+      "components": [
+        "Hash",
+        "Signature"
+      ]
+    }
+  ],
+  "summary": {
+    "crypto_detected": true,
+    "crypto_count": 21,
+    "architecture": "ARM32",
+    "files_analyzed": 4,
+    "extracted": true,
+    "encryption_status": "partially_encrypted",
+    "security_level": "medium"
+  },
+  "extraction": {
+    "performed": true,
+    "method": "python",
+    "files_found": 4,
+    "files_analyzed": 4
+  },
+  "ghidra_analysis": {
+    "available": false,
+    "reason": "GHIDRA_PATH not set or Ghidra not found"
+  },
+  "firmware_intelligence": {
+    "file_size": 1587564,
+    "encryption_detected": false,
+    "encryption_status": "partially_encrypted",
+    "security_level": "medium",
+    "findings": [
+      {
+        "type": "PARTIAL_ENCRYPTION",
+        "severity": "medium",
+        "description": "Firmware has mixed encrypted and unencrypted sections",
+        "confidence": 0.75
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "AES encryption likely used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "RSA public key crypto likely used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "SHA hashing used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "HMAC authentication used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "CBC block cipher mode",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "GCM authenticated encryption",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "PKCS padding/format",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "X.509 certificates",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "PEM encoded data",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "SSL/TLS protocol",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "TLS protocol",
+        "confidence": 0.7
+      }
+    ],
+    "recommendations": [
+      "Standard analysis should work"
+    ],
+    "entropy_analysis": {
+      "average": 5.445,
+      "max": 7.999,
+      "min": 0.0,
+      "variance": 7.999
+    }
+  },
+  "architecture_detection": {
+    "method_1": {
+      "name": "Capstone Disassembly",
+      "architecture": "ARM32",
+      "confidence": 100.0
+    },
+    "method_2": {
+      "name": "Header + Prologue",
+      "architecture": "ARM32",
+      "confidence": 85.0
+    },
+    "method_3": {
+      "name": "String Search",
+      "architecture": null,
+      "confidence": 0.0,
+      "details": {}
+    },
+    "final": {
+      "architecture": "ARM32",
+      "confidence": 100.0,
+      "bits": 32,
+      "endian": "LE",
+      "method": "ensemble",
+      "agreement": {
+        "methods_agreed": 2,
+        "total_methods": 4,
+        "winning_detector": "capstone"
+      }
+    }
+  },
+  "symbolic_verification": {
+    "enabled": true,
+    "method": "angr_symbolic",
+    "functions_verified": 17,
+    "verifications": [
+      {
+        "function_name": "openssl_library",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.9,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "ssl_marker_ssl_functions",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.85,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "hash_sha256",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.9,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "hash_sha512",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.9,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "hash_sha1",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.85,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "hash_md5",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.8,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "hash_hmac",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.85,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "cipher_aes",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.85,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "cipher_aes128",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.9,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "cipher_aes256",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.92,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "cipher_rc4",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.8,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "cipher_chacha20",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.88,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "rsa_marker",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.88,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "chacha_constant",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.94,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "hmac_marker",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.8,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "rc4_stream",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.85,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "ssl_marker_tls_functions",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.82,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      }
+    ]
+  }
+}

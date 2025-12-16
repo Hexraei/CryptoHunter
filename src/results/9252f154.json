@@ -1,0 +1,198 @@
+{
+  "job_id": "9252f154",
+  "status": "completed",
+  "filename": "FW_EA7500_1.1.5.190349_prod.img",
+  "file_path": "D:\\SIH25239\\CryptoHunter\\src\\uploads\\9252f154_FW_EA7500_1.1.5.190349_prod.img",
+  "size": 26869760,
+  "sha256": "e148ffb90c6b588e88915e5aa1dc1e6ded7a723898d0a407430b983155fde9b3",
+  "timestamp": "2025-12-09T08:59:37.787472",
+  "classifications": [
+    {
+      "name": "hash_md5",
+      "class_id": 2,
+      "class_name": "Hash Function",
+      "confidence": 0.8,
+      "indicator": "MD5 reference found"
+    },
+    {
+      "name": "cipher_aes",
+      "class_id": 1,
+      "class_name": "AES/Block Cipher",
+      "confidence": 0.85,
+      "indicator": "AES algorithm reference"
+    },
+    {
+      "name": "cipher_rc4",
+      "class_id": 3,
+      "class_name": "Stream Cipher",
+      "confidence": 0.8,
+      "indicator": "RC4 algorithm reference"
+    },
+    {
+      "name": "sha256_constants",
+      "class_id": 2,
+      "class_name": "Hash Function",
+      "confidence": 0.92,
+      "indicator": "SHA-256 constants found"
+    },
+    {
+      "name": "rsa_marker",
+      "class_id": 4,
+      "class_name": "Public Key",
+      "confidence": 0.88,
+      "indicator": "Found: RSA"
+    },
+    {
+      "name": "xor_cipher",
+      "class_id": 8,
+      "class_name": "XOR Cipher",
+      "confidence": 0.7,
+      "indicator": "XOR encryption pattern detected"
+    }
+  ],
+  "protocols": [
+    {
+      "name": "TLS_HANDSHAKE",
+      "description": "TLS/SSL Protocol detected",
+      "confidence": 0.85,
+      "components": [
+        "AES",
+        "SHA256",
+        "RSA"
+      ]
+    },
+    {
+      "name": "SSH_KEX",
+      "description": "SSH Key Exchange",
+      "confidence": 0.75,
+      "components": [
+        "Encryption",
+        "PublicKey"
+      ]
+    },
+    {
+      "name": "SECURE_BOOT",
+      "description": "Secure Boot Chain",
+      "confidence": 0.7,
+      "components": [
+        "Hash",
+        "Signature"
+      ]
+    }
+  ],
+  "summary": {
+    "crypto_detected": true,
+    "crypto_count": 6,
+    "architecture": "ARM32",
+    "files_analyzed": 1,
+    "extracted": false,
+    "encryption_status": "partially_encrypted",
+    "security_level": "medium"
+  },
+  "extraction": null,
+  "ghidra_analysis": {
+    "available": false,
+    "reason": "GHIDRA_PATH not set or Ghidra not found"
+  },
+  "firmware_intelligence": {
+    "file_size": 26869760,
+    "encryption_detected": false,
+    "encryption_status": "partially_encrypted",
+    "security_level": "medium",
+    "findings": [
+      {
+        "type": "PARTIAL_ENCRYPTION",
+        "severity": "medium",
+        "description": "Firmware has mixed encrypted and unencrypted sections",
+        "confidence": 0.75
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "AES encryption likely used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "RSA public key crypto likely used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "SHA hashing used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "CBC block cipher mode",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "GCM authenticated encryption",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "SSL/TLS protocol",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "TLS protocol",
+        "confidence": 0.7
+      },
+      {
+        "type": "FIRMWARE_TYPE",
+        "severity": "info",
+        "description": "uImage Linux kernel format detected",
+        "confidence": 0.95
+      }
+    ],
+    "recommendations": [
+      "Standard analysis should work"
+    ],
+    "entropy_analysis": {
+      "average": 7.23,
+      "max": 7.967,
+      "min": 0.0,
+      "variance": 7.967
+    }
+  },
+  "architecture_detection": {
+    "method_1": {
+      "name": "Capstone Disassembly",
+      "architecture": "ARM32",
+      "confidence": 100.0
+    },
+    "method_2": {
+      "name": "Header + Prologue",
+      "architecture": "ARM-Thumb",
+      "confidence": 84.3
+    },
+    "method_3": {
+      "name": "String Search",
+      "architecture": null,
+      "confidence": 0.0,
+      "details": {}
+    },
+    "final": {
+      "architecture": "ARM32",
+      "confidence": 100.0,
+      "bits": 32,
+      "endian": "LE",
+      "method": "ensemble",
+      "agreement": {
+        "methods_agreed": 1,
+        "total_methods": 4,
+        "winning_detector": "capstone"
+      }
+    }
+  }
+}

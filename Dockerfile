@@ -129,7 +129,7 @@ RUN mkdir -p uploads results ghidra_projects /tmp/crypto_analysis
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app:/app/src
 ENV GHIDRA_PATH=/opt/ghidra
-ENV MODEL_PATH=/app/models/sota_crypto_model.pt
+ENV MODEL_PATH=/app/models/model.pt
 ENV UPLOAD_DIR=/app/uploads
 ENV RESULTS_DIR=/app/results
 

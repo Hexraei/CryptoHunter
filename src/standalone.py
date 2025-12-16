@@ -1,6 +1,31 @@
 """
 CryptoHunter - Standalone Server
-Full pipeline with XGBoost filter, GNN inference, and Angr verification.
+
+Main FastAPI application server for the CryptoHunter crypto detection system.
+This script provides the complete web interface and REST API for firmware analysis.
+
+Key Functionality:
+- REST API endpoints for firmware upload and analysis
+- WebSocket support for real-time progress updates
+- Integration with XGBoost pre-filter for fast candidate selection
+- GNN-based cryptographic primitive classification
+- Angr symbolic verification for high-confidence detections
+- Architecture detection using multiple detection methods
+- Protocol detection (TLS, SSH, etc.)
+- Export to JSON, CSV, Excel, PDF formats
+
+API Endpoints:
+- POST /api/analyze          Upload and analyze firmware
+- GET  /api/results/{job_id} Get analysis results
+- GET  /api/export/{job_id}  Export reports
+- GET  /api/health           Health check
+- GET  /api/system-status    Component status
+
+Usage:
+    python standalone.py
+
+Dependencies:
+    See requirements.txt for full list
 """
 
 import os
@@ -111,148 +136,6 @@ async def root():
     </body>
     </html>
     """)
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>CryptoHunter</title>
-        <style>
-            * { box-sizing: border-box; }
-            body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: #1a1a2e; color: #eee; }
-            h1 { color: #00d9ff; margin-bottom: 5px; }
-            .subtitle { color: #888; margin-bottom: 30px; }
-            .upload-box { border: 2px dashed #00d9ff; padding: 40px; text-align: center; border-radius: 15px; margin: 20px 0; background: #16213e; transition: all 0.3s; }
-            .upload-box:hover { border-color: #00ff88; background: #1a2744; }
-            .upload-box.dragover { border-color: #00ff88; background: #1a3344; }
-            input[type="file"] { font-size: 16px; color: #eee; }
-            .btn { background: linear-gradient(135deg, #00d9ff, #00ff88); color: #000; padding: 12px 30px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; }
-            .btn:hover { transform: scale(1.05); }
-            .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-            #status { color: #00ff88; font-size: 18px; margin-top: 15px; }
-            .results-container { background: #16213e; border-radius: 15px; padding: 25px; margin-top: 20px; }
-            .section { margin-bottom: 25px; }
-            .section h3 { color: #00d9ff; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
-            .crypto-item { background: #0f3460; padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-            .crypto-name { font-weight: bold; color: #fff; }
-            .crypto-type { color: #00d9ff; font-size: 14px; }
-            .crypto-indicator { color: #888; font-size: 12px; margin-top: 5px; }
-            .confidence { background: #00ff88; color: #000; padding: 5px 12px; border-radius: 20px; font-weight: bold; }
-            .confidence.low { background: #ff6b6b; }
-            .confidence.medium { background: #ffd93d; }
-            .protocol-item { background: #1a3a5c; padding: 15px; border-radius: 10px; margin-bottom: 10px; }
-            .protocol-name { font-weight: bold; color: #ffd93d; font-size: 18px; }
-            .protocol-desc { color: #aaa; }
-            .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
-            .summary-card { background: #0f3460; padding: 20px; border-radius: 10px; text-align: center; }
-            .summary-value { font-size: 32px; font-weight: bold; color: #00d9ff; }
-            .summary-label { color: #888; font-size: 14px; }
-            .no-results { color: #888; text-align: center; padding: 40px; }
-            pre { background: #0a0a15; padding: 15px; border-radius: 10px; overflow-x: auto; font-size: 12px; max-height: 300px; }
-        </style>
-    </head>
-    <body>
-        <h1> CryptoHunter</h1>
-        <p class="subtitle">AI-Powered Cryptographic Primitive Detection in Firmware</p>
-        
-        <div class="upload-box" id="dropzone">
-            <h3> Upload Firmware</h3>
-            <p>Drag & drop a firmware file here, or click to select</p>
-            <form id="uploadForm" enctype="multipart/form-data">
-                <input type="file" name="file" id="fileInput" accept=".bin,.elf,.o,.so,.exe,.img,.fw">
-                <br><br>
-                <button type="submit" class="btn" id="submitBtn"> Analyze Firmware</button>
-            </form>
-            <p id="status"></p>
-        </div>
-        
-        <div id="results"></div>
-        
-        <script>
-            const dropzone = document.getElementById('dropzone');
-            const fileInput = document.getElementById('fileInput');
-            
-            dropzone.ondragover = (e) => { e.preventDefault(); dropzone.classList.add('dragover'); };
-            dropzone.ondragleave = () => dropzone.classList.remove('dragover');
-            dropzone.ondrop = (e) => {
-                e.preventDefault();
-                dropzone.classList.remove('dragover');
-                fileInput.files = e.dataTransfer.files;
-                document.getElementById('uploadForm').dispatchEvent(new Event('submit'));
-            };
-            
-            document.getElementById('uploadForm').onsubmit = async (e) => {
-                e.preventDefault();
-                const file = fileInput.files[0];
-                if (!file) { alert('Please select a file'); return; }
-                
-                const formData = new FormData();
-                formData.append('file', file);
-                
-                document.getElementById('status').innerText = '⏳ Analyzing ' + file.name + '...';
-                document.getElementById('submitBtn').disabled = true;
-                
-                try {
-                    const res = await fetch('/api/analyze', { method: 'POST', body: formData });
-                    const data = await res.json();
-                    document.getElementById('status').innerText = ' Analysis Complete!';
-                    displayResults(data);
-                } catch (err) {
-                    document.getElementById('status').innerText = ' Error: ' + err.message;
-                }
-                document.getElementById('submitBtn').disabled = false;
-            };
-            
-            function displayResults(data) {
-                const cryptoCount = data.summary?.crypto_count || 0;
-                const arch = data.summary?.architecture || 'Unknown';
-                const protocols = data.protocols || [];
-                const classifications = data.classifications || [];
-                
-                let html = '<div class="results-container">';
-                
-                // Summary
-                html += '<div class="section"><h3> Summary</h3><div class="summary-grid">';
-                html += '<div class="summary-card"><div class="summary-value">' + cryptoCount + '</div><div class="summary-label">Crypto Primitives</div></div>';
-                html += '<div class="summary-card"><div class="summary-value">' + protocols.length + '</div><div class="summary-label">Protocols</div></div>';
-                html += '<div class="summary-card"><div class="summary-value">' + arch + '</div><div class="summary-label">Architecture</div></div>';
-                html += '</div></div>';
-                
-                // Classifications
-                html += '<div class="section"><h3> Detected Crypto Primitives</h3>';
-                if (classifications.length > 0) {
-                    classifications.forEach(c => {
-                        const confClass = c.confidence >= 0.85 ? '' : c.confidence >= 0.70 ? 'medium' : 'low';
-                        html += '<div class="crypto-item">';
-                        html += '<div><div class="crypto-name">' + c.class_name + '</div><div class="crypto-indicator">' + (c.indicator || c.name) + '</div></div>';
-                        html += '<div class="confidence ' + confClass + '">' + Math.round(c.confidence * 100) + '%</div>';
-                        html += '</div>';
-                    });
-                } else {
-                    html += '<div class="no-results">No crypto primitives detected</div>';
-                }
-                html += '</div>';
-                
-                // Protocols
-                if (protocols.length > 0) {
-                    html += '<div class="section"><h3> Detected Protocols</h3>';
-                    protocols.forEach(p => {
-                        html += '<div class="protocol-item">';
-                        html += '<div class="protocol-name">' + p.name + '</div>';
-                        html += '<div class="protocol-desc">' + (p.description || '') + ' (' + Math.round(p.confidence * 100) + '% confidence)</div>';
-                        html += '</div>';
-                    });
-                    html += '</div>';
-                }
-                
-                // Raw JSON
-                html += '<div class="section"><h3> Raw JSON</h3><pre>' + JSON.stringify(data, null, 2) + '</pre></div>';
-                
-                html += '</div>';
-                document.getElementById('results').innerHTML = html;
-            }
-        </script>
-    </body>
-    </html>
-    """)
 
 
 @app.get("/cryptex")
@@ -329,7 +212,7 @@ async def system_status():
     }
     
     # 5. GNN model check
-    gnn_model_path = Path(__file__).parent.parent / "models" / "sota_crypto_model.pt"
+    gnn_model_path = Path(__file__).parent.parent / "models" / "model.pt"
     gnn_available = gnn_model_path.exists()
     status["components"]["gnn_classifier"] = {
         "available": gnn_available,

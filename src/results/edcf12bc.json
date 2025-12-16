@@ -1,0 +1,203 @@
+{
+  "job_id": "edcf12bc",
+  "status": "completed",
+  "filename": "P_2_S_4.bin",
+  "file_path": "D:\\SIH25239\\CryptoHunter\\src\\uploads\\edcf12bc_P_2_S_4.bin",
+  "size": 1264068,
+  "sha256": "9f8937e89b436e5a3342325951ea461b53c0e28e911606c23ab06c8a5e3c6fa7",
+  "timestamp": "2025-12-09T12:16:07.351418",
+  "classifications": [
+    {
+      "name": "ssl_marker_tls_functions",
+      "class_id": 1,
+      "class_name": "AES/Block Cipher",
+      "confidence": 0.82,
+      "indicator": "TLS Functions found in firmware"
+    },
+    {
+      "name": "rc4_stream",
+      "class_id": 3,
+      "class_name": "Stream Cipher",
+      "confidence": 0.85,
+      "indicator": "RC4 key schedule detected"
+    },
+    {
+      "name": "xor_cipher",
+      "class_id": 8,
+      "class_name": "XOR Cipher",
+      "confidence": 0.7,
+      "indicator": "XOR encryption pattern detected"
+    }
+  ],
+  "protocols": [],
+  "summary": {
+    "crypto_detected": true,
+    "crypto_count": 3,
+    "architecture": "RISCV64",
+    "files_analyzed": 2,
+    "extracted": true,
+    "encryption_status": "partially_encrypted",
+    "security_level": "medium"
+  },
+  "extraction": {
+    "performed": true,
+    "method": "python",
+    "files_found": 2,
+    "files_analyzed": 2
+  },
+  "ghidra_analysis": {
+    "available": false,
+    "reason": "GHIDRA_PATH not set or Ghidra not found"
+  },
+  "firmware_intelligence": {
+    "file_size": 1264068,
+    "encryption_detected": false,
+    "encryption_status": "partially_encrypted",
+    "security_level": "medium",
+    "findings": [
+      {
+        "type": "PARTIAL_ENCRYPTION",
+        "severity": "medium",
+        "description": "Firmware has mixed encrypted and unencrypted sections",
+        "confidence": 0.75
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "AES encryption likely used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "RSA public key crypto likely used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "SHA hashing used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "HMAC authentication used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "CBC block cipher mode",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "GCM authenticated encryption",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "PKCS padding/format",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "X.509 certificates",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "PEM encoded data",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "SSL/TLS protocol",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "TLS protocol",
+        "confidence": 0.7
+      }
+    ],
+    "recommendations": [
+      "Standard analysis should work"
+    ],
+    "entropy_analysis": {
+      "average": 6.426,
+      "max": 7.995,
+      "min": 0.283,
+      "variance": 7.712
+    }
+  },
+  "architecture_detection": {
+    "method_1": {
+      "name": "Capstone Disassembly",
+      "architecture": "RISCV64",
+      "confidence": 80.0
+    },
+    "method_2": {
+      "name": "Header + Prologue",
+      "architecture": "RISCV32",
+      "confidence": 85.0
+    },
+    "method_3": {
+      "name": "String Search",
+      "architecture": "RISCV64",
+      "confidence": 75.0,
+      "details": {
+        "string_matches": 8,
+        "context": "host=riscv64-linux-gnu' '--enable-static' "
+      }
+    },
+    "final": {
+      "architecture": "RISCV64",
+      "confidence": 100.0,
+      "bits": 64,
+      "endian": "LE",
+      "method": "ensemble",
+      "agreement": {
+        "methods_agreed": 3,
+        "total_methods": 4,
+        "winning_detector": "string_search"
+      }
+    }
+  },
+  "symbolic_verification": {
+    "enabled": true,
+    "method": "angr_symbolic",
+    "functions_verified": 2,
+    "verifications": [
+      {
+        "function_name": "ssl_marker_tls_functions",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.82,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      },
+      {
+        "function_name": "rc4_stream",
+        "function_address": "0x0",
+        "verified": false,
+        "protocol": "unknown",
+        "confidence": 0.85,
+        "details": {
+          "method": "none",
+          "error": "No binary loaded"
+        }
+      }
+    ]
+  }
+}

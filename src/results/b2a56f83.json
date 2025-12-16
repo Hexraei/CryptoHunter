@@ -1,0 +1,170 @@
+{
+  "job_id": "b2a56f83",
+  "status": "completed",
+  "filename": "Phase_2/P_2_S_3.bin",
+  "file_path": "D:\\SIH25239\\CryptoHunter\\src\\uploads\\b2a56f83_P_2_S_3.bin",
+  "size": 1895560,
+  "sha256": "0fe18a7bbbc0a340677765e08efdf2e722f24001f12ee265a67e65c4034aff3c",
+  "timestamp": "2025-12-09T05:22:58.777206",
+  "classifications": [
+    {
+      "name": "ssl_marker_tls_functions",
+      "class_id": 1,
+      "class_name": "AES/Block Cipher",
+      "confidence": 0.82,
+      "indicator": "TLS Functions found in firmware"
+    },
+    {
+      "name": "rc4_stream",
+      "class_id": 3,
+      "class_name": "Stream Cipher",
+      "confidence": 0.85,
+      "indicator": "RC4 key schedule detected"
+    },
+    {
+      "name": "xor_cipher",
+      "class_id": 8,
+      "class_name": "XOR Cipher",
+      "confidence": 0.7,
+      "indicator": "XOR encryption pattern detected"
+    }
+  ],
+  "protocols": [],
+  "summary": {
+    "crypto_detected": true,
+    "crypto_count": 3,
+    "architecture": "MIPS-BE",
+    "files_analyzed": 2,
+    "extracted": true,
+    "encryption_status": "partially_encrypted",
+    "security_level": "medium"
+  },
+  "extraction": {
+    "performed": true,
+    "method": "python",
+    "files_found": 2,
+    "files_analyzed": 2
+  },
+  "ghidra_analysis": {
+    "error": "'charmap' codec can't encode character '\\u2192' in position 2: character maps to <undefined>"
+  },
+  "firmware_intelligence": {
+    "file_size": 1895560,
+    "encryption_detected": false,
+    "encryption_status": "partially_encrypted",
+    "security_level": "medium",
+    "findings": [
+      {
+        "type": "PARTIAL_ENCRYPTION",
+        "severity": "medium",
+        "description": "Firmware has mixed encrypted and unencrypted sections",
+        "confidence": 0.75
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "AES encryption likely used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "RSA public key crypto likely used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "SHA hashing used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "HMAC authentication used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "CBC block cipher mode",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "GCM authenticated encryption",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "PKCS padding/format",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "X.509 certificates",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "PEM encoded data",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "SSL/TLS protocol",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "TLS protocol",
+        "confidence": 0.7
+      }
+    ],
+    "recommendations": [
+      "Standard analysis should work"
+    ],
+    "entropy_analysis": {
+      "average": 5.334,
+      "max": 7.995,
+      "min": 0.0,
+      "variance": 7.995
+    }
+  },
+  "architecture_detection": {
+    "method_1": {
+      "name": "Capstone Disassembly",
+      "architecture": "MIPS-BE",
+      "confidence": 100.0
+    },
+    "method_2": {
+      "name": "Header + Prologue",
+      "architecture": "MIPS-BE",
+      "confidence": 85.0
+    },
+    "method_3": {
+      "name": "String Search",
+      "architecture": null,
+      "confidence": 0.0,
+      "details": {}
+    },
+    "final": {
+      "architecture": "MIPS-BE",
+      "confidence": 100.0,
+      "bits": 32,
+      "endian": "BE",
+      "method": "ensemble",
+      "agreement": {
+        "methods_agreed": 2,
+        "total_methods": 4,
+        "winning_detector": "capstone"
+      }
+    }
+  }
+}

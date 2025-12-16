@@ -41,3 +41,6 @@ ghidra_projects/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Archive folder (unnecessary files moved here)
+_archive/

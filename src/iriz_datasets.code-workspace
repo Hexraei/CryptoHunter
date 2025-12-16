@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../../iriz_datasets"
+		},
+		{
+			"path": "../../CRYPTOSCANNER"
+		}
+	],
+	"settings": {
+		"git.ignoreLimitWarning": true
+	}
+}

@@ -1,0 +1,124 @@
+{
+  "job_id": "d624a039",
+  "status": "completed",
+  "filename": "industrial_plc.bin",
+  "file_path": "D:\\SIH25239\\CryptoHunter\\src\\uploads\\d624a039_industrial_plc.bin",
+  "size": 131072,
+  "sha256": "f854d7c71c2d1e7062f60eac78e8e587728dedb1b44a8fdc1ee2efeae85de08e",
+  "timestamp": "2025-12-09T09:00:56.193232",
+  "classifications": [
+    {
+      "name": "aes_sbox_detected",
+      "class_id": 1,
+      "class_name": "AES/Block Cipher",
+      "confidence": 0.95,
+      "indicator": "S-Box pattern found"
+    },
+    {
+      "name": "sha256_constants",
+      "class_id": 2,
+      "class_name": "Hash Function",
+      "confidence": 0.92,
+      "indicator": "SHA-256 constants found"
+    },
+    {
+      "name": "proprietary_encrypted",
+      "class_id": 8,
+      "class_name": "XOR Cipher",
+      "confidence": 0.65,
+      "indicator": "High entropy (7.94) - possibly encrypted"
+    }
+  ],
+  "protocols": [
+    {
+      "name": "TLS_HANDSHAKE",
+      "description": "TLS/SSL Protocol detected",
+      "confidence": 0.7,
+      "components": [
+        "AES",
+        "SHA256",
+        null
+      ]
+    }
+  ],
+  "summary": {
+    "crypto_detected": true,
+    "crypto_count": 3,
+    "architecture": "ARM32",
+    "files_analyzed": 1,
+    "extracted": true,
+    "encryption_status": "fully_encrypted",
+    "security_level": "high"
+  },
+  "extraction": {
+    "performed": true,
+    "method": "python",
+    "files_found": 1,
+    "files_analyzed": 1
+  },
+  "ghidra_analysis": {
+    "available": false,
+    "reason": "GHIDRA_PATH not set or Ghidra not found"
+  },
+  "firmware_intelligence": {
+    "file_size": 131072,
+    "encryption_detected": true,
+    "encryption_status": "fully_encrypted",
+    "security_level": "high",
+    "findings": [
+      {
+        "type": "ENCRYPTION",
+        "severity": "high",
+        "description": "Firmware is fully encrypted (entropy: 7.95)",
+        "confidence": 0.95
+      },
+      {
+        "type": "FIRMWARE_TYPE",
+        "severity": "info",
+        "description": "uImage Linux kernel format detected",
+        "confidence": 0.95
+      }
+    ],
+    "recommendations": [
+      "Firmware uses strong encryption - indicates security-conscious design",
+      "Secure boot likely implemented",
+      "Cannot analyze without decryption key"
+    ],
+    "entropy_analysis": {
+      "average": 7.952,
+      "max": 7.963,
+      "min": 7.898,
+      "variance": 0.065
+    }
+  },
+  "architecture_detection": {
+    "method_1": {
+      "name": "Capstone Disassembly",
+      "architecture": "x86",
+      "confidence": 62.7
+    },
+    "method_2": {
+      "name": "Header + Prologue",
+      "architecture": "Unknown-0",
+      "confidence": 45.0
+    },
+    "method_3": {
+      "name": "String Search",
+      "architecture": null,
+      "confidence": 0.0,
+      "details": {}
+    },
+    "final": {
+      "architecture": "ARM32",
+      "confidence": 55.5,
+      "bits": 32,
+      "endian": "BE",
+      "method": "ensemble",
+      "agreement": {
+        "methods_agreed": 1,
+        "total_methods": 4,
+        "winning_detector": "capstone"
+      }
+    }
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "job_id": "da8104d6",
+  "status": "completed",
+  "filename": "code.bin",
+  "file_path": "D:\\SIH25239\\CryptoHunter\\src\\uploads\\da8104d6_code.bin",
+  "size": 307212,
+  "sha256": "416dcd83212e9d9a04cdd53573bc196f428ae0667d60846f1888cf601c3c5d8a",
+  "timestamp": "2025-12-09T08:59:57.949035",
+  "classifications": [
+    {
+      "name": "proprietary_encrypted",
+      "class_id": 8,
+      "class_name": "XOR Cipher",
+      "confidence": 0.65,
+      "indicator": "High entropy (7.88) - possibly encrypted"
+    }
+  ],
+  "protocols": [],
+  "summary": {
+    "crypto_detected": true,
+    "crypto_count": 1,
+    "architecture": "ARM32",
+    "files_analyzed": 1,
+    "extracted": false,
+    "encryption_status": "compressed_or_encrypted",
+    "security_level": "medium"
+  },
+  "extraction": null,
+  "ghidra_analysis": {
+    "available": false,
+    "reason": "GHIDRA_PATH not set or Ghidra not found"
+  },
+  "firmware_intelligence": {
+    "file_size": 307212,
+    "encryption_detected": true,
+    "encryption_status": "compressed_or_encrypted",
+    "security_level": "medium",
+    "findings": [
+      {
+        "type": "COMPRESSION",
+        "severity": "medium",
+        "description": "Firmware uses strong compression or encryption (entropy: 7.73)",
+        "confidence": 0.85
+      }
+    ],
+    "recommendations": [
+      "Try firmware-specific unpacker for this vendor",
+      "Consider using JTAG/UART for analysis"
+    ],
+    "entropy_analysis": {
+      "average": 7.735,
+      "max": 7.949,
+      "min": 1.585,
+      "variance": 6.364
+    }
+  },
+  "architecture_detection": {
+    "method_1": {
+      "name": "Capstone Disassembly",
+      "architecture": "x86",
+      "confidence": 62.3
+    },
+    "method_2": {
+      "name": "Header + Prologue",
+      "architecture": "MIPS-BE",
+      "confidence": 67.0
+    },
+    "method_3": {
+      "name": "String Search",
+      "architecture": null,
+      "confidence": 0.0,
+      "details": {}
+    },
+    "final": {
+      "architecture": "ARM32",
+      "confidence": 88.1,
+      "bits": 32,
+      "endian": "BE",
+      "method": "ensemble",
+      "agreement": {
+        "methods_agreed": 1,
+        "total_methods": 4,
+        "winning_detector": "capstone"
+      }
+    }
+  }
+}

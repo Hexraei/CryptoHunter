@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CryptoHunter Report - 28502166</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; color: #333; }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #3498db; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #3498db; color: white; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        .summary-box { background: #ecf0f1; padding: 20px; border-radius: 8px; margin-bottom: 25px; }
+        .crypto { color: #27ae60; font-weight: bold; }
+        .non-crypto { color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <h1> CryptoHunter Analysis Report</h1>
+    <p><strong>Job ID:</strong> 28502166</p>
+    <p><strong>Filename:</strong> P_2_S_4.bin</p>
+    <p><strong>Generated:</strong> 2025-12-09 15:12:32</p>
+    
+    <div class="summary-box">
+        <h2> Summary</h2>
+        <p><strong>Crypto Detected:</strong> <span class="crypto">Yes </span></p>
+        <p><strong>Total Crypto Primitives:</strong> 3</p>
+        <p><strong>Architecture:</strong> RISCV64</p>
+        <p><strong>Security Level:</strong> MEDIUM</p>
+    </div>
+    
+    <h2> Detected Crypto Primitives</h2>
+    <table>
+        <tr><th>Name</th><th>Class</th><th>Confidence</th><th>Indicator</th></tr>
+<tr><td>ssl_marker_tls_functions</td><td>AES/Block Cipher</td><td>82.0%</td><td>TLS Functions found in firmware</td></tr>
+<tr><td>rc4_stream</td><td>Stream Cipher</td><td>85.0%</td><td>RC4 key schedule detected</td></tr>
+<tr><td>xor_cipher</td><td>XOR Cipher</td><td>70.0%</td><td>XOR encryption pattern detected</td></tr>
+</table></body></html>

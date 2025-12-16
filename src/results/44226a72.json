@@ -1,0 +1,245 @@
+{
+  "job_id": "44226a72",
+  "status": "completed",
+  "filename": "router_firmware_mips.bin",
+  "file_path": "D:\\SIH25239\\CryptoHunter\\src\\uploads\\44226a72_router_firmware_mips.bin",
+  "size": 786432,
+  "sha256": "0f3243e395775a7bb32c3ed9bc839c70a8391fba7f231c6b3550cbabc057a2fb",
+  "timestamp": "2025-12-09T09:00:28.435375",
+  "classifications": [
+    {
+      "name": "ssl_marker_tls_functions",
+      "class_id": 1,
+      "class_name": "AES/Block Cipher",
+      "confidence": 0.85,
+      "indicator": "TLS Functions found in firmware"
+    },
+    {
+      "name": "hash_sha256",
+      "class_id": 2,
+      "class_name": "Hash Function",
+      "confidence": 0.9,
+      "indicator": "SHA-256 reference found"
+    },
+    {
+      "name": "hash_hmac",
+      "class_id": 5,
+      "class_name": "Auth/MAC",
+      "confidence": 0.82,
+      "indicator": "HMAC reference found"
+    },
+    {
+      "name": "cipher_aes",
+      "class_id": 1,
+      "class_name": "AES/Block Cipher",
+      "confidence": 0.85,
+      "indicator": "AES algorithm reference"
+    },
+    {
+      "name": "aes_sbox_detected",
+      "class_id": 1,
+      "class_name": "AES/Block Cipher",
+      "confidence": 0.95,
+      "indicator": "S-Box pattern found"
+    },
+    {
+      "name": "sha256_constants",
+      "class_id": 2,
+      "class_name": "Hash Function",
+      "confidence": 0.92,
+      "indicator": "SHA-256 constants found"
+    },
+    {
+      "name": "md5_init",
+      "class_id": 2,
+      "class_name": "Hash Function",
+      "confidence": 0.85,
+      "indicator": "MD5 initialization vector"
+    },
+    {
+      "name": "rsa_marker",
+      "class_id": 4,
+      "class_name": "Public Key",
+      "confidence": 0.88,
+      "indicator": "Found: RSA"
+    },
+    {
+      "name": "chacha_constant",
+      "class_id": 3,
+      "class_name": "Stream Cipher",
+      "confidence": 0.94,
+      "indicator": "ChaCha constant found"
+    },
+    {
+      "name": "hmac_marker",
+      "class_id": 5,
+      "class_name": "Auth/MAC",
+      "confidence": 0.8,
+      "indicator": "HMAC string found"
+    },
+    {
+      "name": "xor_cipher",
+      "class_id": 8,
+      "class_name": "XOR Cipher",
+      "confidence": 0.7,
+      "indicator": "XOR encryption pattern detected"
+    },
+    {
+      "name": "proprietary_encrypted",
+      "class_id": 8,
+      "class_name": "XOR Cipher",
+      "confidence": 0.65,
+      "indicator": "High entropy (7.87) - possibly encrypted"
+    }
+  ],
+  "protocols": [
+    {
+      "name": "TLS_HANDSHAKE",
+      "description": "TLS/SSL Protocol detected",
+      "confidence": 0.85,
+      "components": [
+        "AES",
+        "SHA256",
+        "RSA"
+      ]
+    },
+    {
+      "name": "SSH_KEX",
+      "description": "SSH Key Exchange",
+      "confidence": 0.75,
+      "components": [
+        "Encryption",
+        "PublicKey"
+      ]
+    },
+    {
+      "name": "SECURE_BOOT",
+      "description": "Secure Boot Chain",
+      "confidence": 0.7,
+      "components": [
+        "Hash",
+        "Signature"
+      ]
+    }
+  ],
+  "summary": {
+    "crypto_detected": true,
+    "crypto_count": 12,
+    "architecture": "MIPS-BE",
+    "files_analyzed": 1,
+    "extracted": true,
+    "encryption_status": "unencrypted",
+    "security_level": "low"
+  },
+  "extraction": {
+    "performed": true,
+    "method": "python",
+    "files_found": 1,
+    "files_analyzed": 1
+  },
+  "ghidra_analysis": {
+    "available": false,
+    "reason": "GHIDRA_PATH not set or Ghidra not found"
+  },
+  "firmware_intelligence": {
+    "file_size": 786432,
+    "encryption_detected": false,
+    "encryption_status": "unencrypted",
+    "security_level": "low",
+    "findings": [
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "AES encryption likely used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "RSA public key crypto likely used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "SHA hashing used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "HMAC authentication used",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "GCM authenticated encryption",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "PKCS padding/format",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "SSH authentication",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "SSL/TLS protocol",
+        "confidence": 0.7
+      },
+      {
+        "type": "CRYPTO_INDICATOR",
+        "severity": "info",
+        "description": "TLS protocol",
+        "confidence": 0.7
+      }
+    ],
+    "recommendations": [
+      "Standard analysis should work"
+    ],
+    "entropy_analysis": {
+      "average": 7.167,
+      "max": 7.871,
+      "min": 6.94,
+      "variance": 0.931
+    }
+  },
+  "architecture_detection": {
+    "method_1": {
+      "name": "Capstone Disassembly",
+      "architecture": "x86",
+      "confidence": 63.2
+    },
+    "method_2": {
+      "name": "Header + Prologue",
+      "architecture": "MIPS-BE",
+      "confidence": 99.0
+    },
+    "method_3": {
+      "name": "String Search",
+      "architecture": null,
+      "confidence": 0.0,
+      "details": {}
+    },
+    "final": {
+      "architecture": "MIPS-BE",
+      "confidence": 100.0,
+      "bits": 32,
+      "endian": "BE",
+      "method": "ensemble",
+      "agreement": {
+        "methods_agreed": 3,
+        "total_methods": 4,
+        "winning_detector": "header"
+      }
+    }
+  }
+}

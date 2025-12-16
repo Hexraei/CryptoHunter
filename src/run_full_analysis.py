@@ -1,8 +1,26 @@
-# run_full_analysis.py - Complete CryptoHunter Analysis Pipeline
-# Orchestrates: Binwalk → Ghidra → Fast Filter → GNN → Protocol Detection → Angr Verification
-#
-# Usage: python run_full_analysis.py <binary_file> [--output output.json]
-#        python run_full_analysis.py firmware.bin --firmware  # Extract first
+"""
+CryptoHunter - Complete Analysis Pipeline
+
+Orchestrates the full firmware analysis workflow:
+Binwalk/Unblob -> Ghidra P-Code -> XGBoost Filter -> GNN Classification -> 
+Protocol Detection -> Angr Verification -> Report Generation
+
+Key Functionality:
+- extract_firmware_with_binwalk(): Extracts embedded files from firmware images
+- extract_graph_with_ghidra(): Converts binaries to control flow graphs via Ghidra
+- fast_filter_functions(): Pre-filters with XGBoost to reduce GNN workload
+- classify_with_gnn(): Runs GNN inference for crypto classification
+- detect_protocols(): Identifies high-level protocols (TLS, SSH, etc.)
+- verify_with_angr(): Symbolic verification for high-confidence detections
+- analyze(): Main entry point to run full pipeline
+
+Usage:
+    python run_full_analysis.py <binary_file> [--output output.json]
+    python run_full_analysis.py firmware.bin --firmware  # Extract first
+
+Functions are organized by pipeline step (Step 0-5).
+"""
+
 
 import os
 import sys
@@ -20,7 +38,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 GHIDRA_PATH = os.environ.get("GHIDRA_PATH", r"D:\ghidra_11.4.2_PUBLIC")
 HEADLESS = os.path.join(GHIDRA_PATH, "support", "analyzeHeadless.bat")
 GRAPH_EXPORT_SCRIPT = os.path.join(BASE_DIR, "graph_export.py")
-MODEL_PATH = os.path.join(BASE_DIR, "sota_crypto_model.pt")
+MODEL_PATH = os.path.join(BASE_DIR, "..", "models", "model.pt")
 TEMP_DIR = os.path.join(BASE_DIR, "temp_analysis")
 
 # Binwalk settings
